@@ -277,15 +277,54 @@ border:1px solid #ddd;
   margin-top:12px;
   display:block;
 }
+
+.reactionRow{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.heartBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(0,0,0,.03);
+  color:#111;
+  font-weight:900;
+  font-size:14px;
+  cursor:pointer;
+  box-shadow:none;
+}
+
+.heartBtn.active{
+  background:rgba(255,45,85,.14);
+  border-color:rgba(255,45,85,.28);
+  color:#FF2D55;
+}
+
+.heartCount{
+  font-size:13px;
+  font-weight:800;
+  color:rgba(0,0,0,.55);
+}
+
 /* TABS */
 .tabs{
   display:flex;
-  gap:10px;
+  gap:8px;
   margin-bottom:14px;
+  flex-wrap:wrap;
 }
 
 .tabBtn{
   flex:1;
+  min-width:120px;
   padding:12px;
   border:none;
   border-radius:14px;
@@ -349,6 +388,50 @@ border:1px solid #ddd;
 
 .replyPill.show{ display:block; }
 
+/* Romantic new-entry badge */
+.tabBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:6px;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  background:rgba(255,255,255,.85);
+  color:#FF2D55;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 6px 14px rgba(0,0,0,.10);
+}
+
+/* Toast */
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(env(safe-area-inset-bottom) + 18px);
+  transform:translateX(-50%);
+  max-width:420px;
+  width:calc(100% - 40px);
+  padding:12px 14px;
+  border-radius:16px;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 16px 40px rgba(0,0,0,.22);
+  color:#111;
+  font-weight:800;
+  font-size:14px;
+  line-height:1.35;
+  z-index:9999;
+}
+
+.toastSub{
+  display:block;
+  margin-top:4px;
+  font-weight:700;
+  color:rgba(0,0,0,.60);
+}
+
 </style>
 </head>
 
@@ -362,93 +445,128 @@ A&N Deployment Prompts
 </div>
 
 <div class="tabs">
-  <button class="tabBtn active" id="tabPrompts" onclick="showTab('prompts')">Prompts</button>
-  <button class="tabBtn" id="tabJournal" onclick="showTab('journal')">Journal</button>
+  <button class="tabBtn" id="tabSignIn" onclick="showTab('signin')">Sign In</button>
+  <button class="tabBtn active" id="tabHome" onclick="showTab('home')">Home</button>
+  <button class="tabBtn" id="tabPrompts" onclick="showTab('prompts')">Prompts</button>
+  <button class="tabBtn" id="tabMemory" onclick="showTab('memory')">Memory</button>
+  
+  <button class="tabBtn" id="tabEntries" onclick="showTab('entries')">
+  Entries <span id="entriesBadge" class="tabBadge" style="display:none;">❤️</span>
+</button>
 </div>
 
-<div class="section active" id="sectionPrompts">
-<!-- PROMPT BUTTONS -->
-
-<button class="random" onclick="spinPrompt('Short Prompts')">
-🎲 Random Prompt
-</button>
-
-<button class="photo" onclick="spinPrompt('Photo Prompts')">
-📸 Photo Prompt
-</button>
-
-<button class="deep" onclick="spinPrompt('Deep Questions')">
-❤️ Deep Question
-</button>
-
-<button class="pimienta" onclick="spinPrompt('Pimienta Prompts')">
-🐱 Pimienta Prompt
-</button>
-
-<!-- PROMPT CARD (THIS DISPLAYS THE PROMPT) -->
-
-<div class="card">
-<div id="prompt">
-<div class="spinner"></div>
-</div>
-</div>
-</div>
-
-<div class="section" id="sectionJournal">
-<!-- ======================= -->
-<!-- MEMORY VAULT SECTION -->
-<!-- ======================= -->
-
-<div class="vault">
-
-<h2>Memory Vault</h2>
-<div id="authBox" style="margin-bottom:14px;">
-  <div id="authStatus" style="font-size:14px; margin-bottom:10px;">
-    Not signed in
+<div class="section" id="sectionPrompts">
+  <!-- PROMPT BUTTONS -->
+  <button class="random" onclick="spinPrompt('Short Prompts')">
+    🎲 Random Prompt
+  </button>
+  <button class="photo" onclick="spinPrompt('Photo Prompts')">
+    📸 Photo Prompt
+  </button>
+  <button class="deep" onclick="spinPrompt('Deep Questions')">
+    ❤️ Deep Question
+  </button>
+  <button class="pimienta" onclick="spinPrompt('Pimienta Prompts')">
+    🐱 Pimienta Prompt
+  </button>
+  <!-- PROMPT CARD (THIS DISPLAYS THE PROMPT) -->
+  <div class="card">
+    <div id="prompt">
+      <div class="spinner"></div>
+    </div>
   </div>
 
-  <input id="authEmail" type="email" placeholder="Email">
-  <input id="authPassword" type="password" placeholder="Password">
+  <div class="vault" style="margin-top:18px;">
+    <h2>Leave an Answer</h2>
 
-  <button class="saveMemory" onclick="signIn()">
-    Sign In
-  </button>
+    <div class="replyPill show" id="replyPill">
+      <div class="label">Replying to</div>
+      <div class="text" id="replyText">Spin a prompt first.</div>
+    </div>
 
-  <button class="saveMemory" onclick="signOutUser()" style="background:#555;">
-    Sign Out
-  </button>
+    <textarea id="promptAnswerText" placeholder="Write your answer — one line counts..."></textarea>
+    <input id="promptAnswerLink" placeholder="Paste a link (song, reel, etc)">
+    <input type="file" id="promptAnswerImage" accept="image/*" capture="environment">
+
+    <select id="promptAnswerWho">
+      <option>Alex</option>
+      <option>Nathalia</option>
+    </select>
+
+    <button class="saveMemory" onclick="savePromptAnswer()">💾 Save Prompt Answer</button>
+  </div>
 </div>
 
-<div class="modeRow">
-  <button class="modeChip active" id="modeMemory" onclick="setEntryMode('memory')">Memory</button>
-  <button class="modeChip" id="modePrompt" onclick="setEntryMode('prompt')">Prompt Answer</button>
+<div class="section" id="sectionSignIn">
+  <div class="vault">
+    <h2>Sign In</h2>
+    <div id="authBox" style="margin-bottom:14px;">
+      <div id="authStatus" style="font-size:14px; margin-bottom:10px;">
+        Not signed in
+      </div>
+
+      <input id="authEmail" type="email" placeholder="Email">
+      <input id="authPassword" type="password" placeholder="Password">
+
+      <button class="saveMemory" onclick="signIn()">
+        Sign In
+      </button>
+
+      <button class="saveMemory" onclick="signOutUser()" style="background:#555;">
+        Sign Out
+      </button>
+    </div>
+  </div>
 </div>
 
-<div class="replyPill" id="replyPill">
-  <div class="label">Replying to</div>
-  <div class="text" id="replyText">No prompt selected yet.</div>
+<div class="section active" id="sectionHome">
+  <div class="vault">
+    <h2>Home</h2>
+    <p style="margin:10px 0 14px; line-height:1.45;">
+      Welcome to our little corner of the deployment. No pressure, no schedule.
+      Leave tiny breadcrumbs of your day: one sentence, one photo, or one song.
+    </p>
+
+    <img src="image.png" alt="Pimienta" style="width:100%;border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,.15);margin:10px 0 16px;">
+
+    <div style="background:rgba(0,0,0,.04);border-radius:16px;padding:14px;line-height:1.45;">
+      <b>How to use</b><br>
+      1) Sign in (Sign In tab).<br>
+      2) Prompts: spin one, answer it, add a photo or link if you want, then save.<br>
+      3) Memory: leave a quick note, update, or random thought for the other person.<br>
+      4) Entries: scroll our timeline like a journal—and tap ❤️ to react.
+    </div>
+  </div>
 </div>
 
-<textarea id="memoryText" placeholder="Write a thought, memory, or update..."></textarea>
+<div class="section" id="sectionMemory">
+  <div class="vault">
+    <h2>Memory</h2>
 
-<input id="memoryLink" placeholder="Paste a link (song, reel, etc)">
+    <textarea id="memoryText" placeholder="Leave a little piece of your day here..."></textarea>
+    <input id="memoryLink" placeholder="Paste a link (song, reel, etc)">
+    <input type="file" id="memoryImage" accept="image/*" capture="environment">
 
-<input type="file" id="memoryImage" accept="image/*" capture="environment">
+    <select id="memoryWho">
+      <option>Alex</option>
+      <option>Nathalia</option>
+    </select>
 
-<select id="memoryWho">
-<option>Alex</option>
-<option>Nathalia</option>
-</select>
-
-<button class="saveMemory" onclick="saveMemory()">
-💾 Save Memory
-</button>
-
+    <button class="saveMemory" onclick="saveMemory()">💾 Save Memory</button>
+  </div>
 </div>
 
-<!-- MEMORY FEED -->
-<div id="memoryFeed"></div>
+<div class="section" id="sectionEntries">
+  <div class="vault">
+    <h2>Entries</h2>
+    <div style="font-size:14px;color:rgba(0,0,0,.65);line-height:1.45;">
+      Our timeline — one tiny moment at a time.
+    </div>
+  </div>
+  <div id="memoryFeed"></div>
 </div>
+
+<div id="toast" class="toast" style="display:none;" role="status" aria-live="polite"></div>
 
 
 <script type="module">
@@ -473,6 +591,9 @@ import {
   orderBy,
   limit,
   onSnapshot,
+  doc,
+  updateDoc,
+  deleteField,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -502,19 +623,25 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+let activeTab = "home";
+let unseenFromPartner = 0;
+let lastPartnerWho = "";
+let toastTimer = null;
+window.__lastSeenTs = 0;
+
 // Expose functions for inline onclick handlers
 window.signIn = signIn;
 window.signOutUser = signOutUser;
 window.saveMemory = saveMemory;
 window.spinPrompt = spinPrompt;
 window.showTab = showTab;
-window.setEntryMode = setEntryMode;
+window.savePromptAnswer = savePromptAnswer;
+window.toggleHeart = toggleHeart;
 
 // Tracks the last "final" prompt shown so we can save it with an answer
 let currentPromptCategory = "";
 let currentPromptText = "";
 let currentPromptSetAt = 0;
-let entryMode = "memory"; // "memory" | "prompt"
 
 function setCurrentPrompt(category, text) {
   currentPromptCategory = category || "";
@@ -524,35 +651,67 @@ function setCurrentPrompt(category, text) {
 }
 
 function showTab(tab) {
-  const isPrompts = tab === "prompts";
-  document.getElementById("sectionPrompts").classList.toggle("active", isPrompts);
-  document.getElementById("sectionJournal").classList.toggle("active", !isPrompts);
+  activeTab = tab;
+  const sections = {
+    signin: "sectionSignIn",
+    home: "sectionHome",
+    prompts: "sectionPrompts",
+    memory: "sectionMemory",
+    entries: "sectionEntries",
+  };
 
-  document.getElementById("tabPrompts").classList.toggle("active", isPrompts);
-  document.getElementById("tabJournal").classList.toggle("active", !isPrompts);
+  const tabs = {
+    signin: "tabSignIn",
+    home: "tabHome",
+    prompts: "tabPrompts",
+    memory: "tabMemory",
+    entries: "tabEntries",
+  };
+
+  for (const k of Object.keys(sections)) {
+    document.getElementById(sections[k]).classList.toggle("active", k === tab);
+  }
+
+  for (const k of Object.keys(tabs)) {
+    document.getElementById(tabs[k]).classList.toggle("active", k === tab);
+  }
+
+  // Clear unseen badge when viewing Entries
+  if (tab === "entries") {
+    unseenFromPartner = 0;
+    lastPartnerWho = "";
+    updateEntriesBadge();
+    window.__lastSeenTs = Date.now();
+  }
 }
 
-function setEntryMode(mode) {
-  entryMode = mode === "prompt" ? "prompt" : "memory";
-  document.getElementById("modeMemory").classList.toggle("active", entryMode === "memory");
-  document.getElementById("modePrompt").classList.toggle("active", entryMode === "prompt");
-  refreshReplyPill();
+function updateEntriesBadge() {
+  const badge = document.getElementById("entriesBadge");
+  if (!badge) return;
 
-  // Slight UX tweak
-  const ta = document.getElementById("memoryText");
-  ta.placeholder = entryMode === "prompt"
-    ? "Write your answer to the prompt..."
-    : "Write a thought, memory, or update...";
+  if (unseenFromPartner <= 0) {
+    badge.style.display = "none";
+    badge.textContent = "❤️";
+    return;
+  }
+
+  badge.style.display = "inline-flex";
+  badge.textContent = unseenFromPartner === 1 ? "❤️" : `❤️ ${unseenFromPartner}`;
+}
+
+function showToast(title, subtitle = "") {
+  const el = document.getElementById("toast");
+  if (!el) return;
+
+  el.innerHTML = `${title}${subtitle ? `<span class="toastSub">${subtitle}</span>` : ""}`;
+  el.style.display = "block";
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
 }
 
 function refreshReplyPill() {
-  const pill = document.getElementById("replyPill");
   const textEl = document.getElementById("replyText");
-
-  const show = entryMode === "prompt";
-  pill.classList.toggle("show", show);
-
-  if (!show) return;
 
   if (!currentPromptText) {
     textEl.textContent = "Spin a prompt first.";
@@ -636,9 +795,9 @@ function spinPrompt(type) {
       const finalPrompt = finalPool[Math.floor(Math.random() * finalPool.length)];
       promptElement.innerText = finalPrompt;
       setCurrentPrompt(type, finalPrompt);
-      // Jump to journal composer for quick answering
-      setEntryMode("prompt");
-      showTab("journal");
+      showTab("prompts");
+      const ta = document.getElementById("promptAnswerText");
+      if (ta) ta.focus();
 
       history.push(finalPrompt);
       saveHistory(type, history);
@@ -676,6 +835,22 @@ function setAuthUI(user) {
   document.getElementById("memoryLink").disabled = !isSignedIn;
   document.getElementById("memoryImage").disabled = !isSignedIn;
   document.getElementById("memoryWho").disabled = !isSignedIn;
+
+  // Prompt answer composer
+  const paText = document.getElementById("promptAnswerText");
+  const paLink = document.getElementById("promptAnswerLink");
+  const paImg = document.getElementById("promptAnswerImage");
+  const paWho = document.getElementById("promptAnswerWho");
+  if (paText) paText.disabled = !isSignedIn;
+  if (paLink) paLink.disabled = !isSignedIn;
+  if (paImg) paImg.disabled = !isSignedIn;
+  if (paWho) paWho.disabled = !isSignedIn;
+
+  // Default "who" for prompt answers
+  if (isSignedIn && paWho) {
+    if (user.email === "corbin.xela@gmail.com") paWho.value = "Alex";
+    if (user.email === "sharolgarzon11@gmail.com") paWho.value = "Nathalia";
+  }
 
   // Clear password after sign-in
   if (isSignedIn) passInput.value = "";
@@ -720,7 +895,25 @@ async function signOutUser() {
 IMAGE COMPRESSION (client-side)
 ============================ */
 
-async function fileToCompressedDataURL(file, maxW = 1200, quality = 0.72) {
+function dataUrlBytes(dataUrl) {
+  const base64 = String(dataUrl).split(",")[1] || "";
+  const padding = base64.endsWith("==") ? 2 : (base64.endsWith("=") ? 1 : 0);
+  return Math.floor(base64.length * 0.75) - padding;
+}
+
+async function compressImageUnderBytes(file, maxBytes = 5 * 1024 * 1024) {
+  // Try a few (maxW, quality) pairs until we get under maxBytes.
+  const candidates = [
+    { maxW: 2000, q: 0.78 },
+    { maxW: 1600, q: 0.75 },
+    { maxW: 1400, q: 0.72 },
+    { maxW: 1200, q: 0.70 },
+    { maxW: 1000, q: 0.68 },
+    { maxW: 900,  q: 0.66 },
+    { maxW: 800,  q: 0.64 },
+    { maxW: 700,  q: 0.62 },
+  ];
+
   const img = await new Promise((resolve, reject) => {
     const i = new Image();
     i.onload = () => resolve(i);
@@ -728,21 +921,30 @@ async function fileToCompressedDataURL(file, maxW = 1200, quality = 0.72) {
     i.src = URL.createObjectURL(file);
   });
 
-  const scale = Math.min(1, maxW / img.width);
-  const w = Math.round(img.width * scale);
-  const h = Math.round(img.height * scale);
+  let lastDataUrl = "";
 
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0, w, h);
+  for (const c of candidates) {
+    const scale = Math.min(1, c.maxW / img.width);
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
 
-  const dataUrl = canvas.toDataURL("image/jpeg", quality);
-  try {
-    URL.revokeObjectURL(img.src);
-  } catch (_) {}
-  return dataUrl;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", c.q);
+    lastDataUrl = dataUrl;
+
+    if (dataUrlBytes(dataUrl) <= maxBytes) {
+      try { URL.revokeObjectURL(img.src); } catch (_) {}
+      return dataUrl;
+    }
+  }
+
+  try { URL.revokeObjectURL(img.src); } catch (_) {}
+  return lastDataUrl; // smallest attempt
 }
 
 /* ============================
@@ -750,6 +952,34 @@ MEMORY VAULT (Firestore + Storage)
 ============================ */
 
 let unsubscribeFeed = null;
+
+async function toggleHeart(entryId) {
+  const user = auth.currentUser;
+  if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
+    alert("Sign in first.");
+    showTab("signin");
+    return;
+  }
+
+  try {
+    const entryRef = doc(db, "entries", entryId);
+    const uid = user.uid;
+    const key = `reactions.${uid}`;
+
+    // Toggle based on DOM state (simple and reliable here)
+    const btn = document.getElementById(`heart_${entryId}`);
+    const isActive = btn && btn.classList.contains("active");
+
+    if (isActive) {
+      await updateDoc(entryRef, { [key]: deleteField() });
+    } else {
+      await updateDoc(entryRef, { [key]: true });
+    }
+  } catch (err) {
+    console.error("Reaction error:", err);
+    alert("Reaction failed: " + (err?.message || "unknown error"));
+  }
+}
 
 function escapeHtml(str) {
   return String(str)
@@ -764,7 +994,7 @@ function startFeedListener() {
   if (unsubscribeFeed) unsubscribeFeed();
 
   const entriesRef = collection(db, "entries");
-  const q = query(entriesRef, orderBy("createdAt", "desc"), limit(50));
+  const q = query(entriesRef, orderBy("createdAtClient", "desc"), limit(50));
 
   unsubscribeFeed = onSnapshot(
     q,
@@ -776,6 +1006,29 @@ function startFeedListener() {
       snap.forEach((d) => {
         docs.push({ id: d.id, ...d.data() });
       });
+
+      if (docs.length > 0 && auth.currentUser) {
+        const newest = docs[0];
+        const myEmail = auth.currentUser.email || "";
+        const fromPartner = newest.email && newest.email !== myEmail;
+        const newestTs = typeof newest.createdAtClient === "number" ? newest.createdAtClient : 0;
+
+        if (fromPartner && newestTs > window.__lastSeenTs && activeTab !== "entries") {
+          unseenFromPartner += 1;
+          lastPartnerWho = (newest.who || "").trim();
+          updateEntriesBadge();
+
+          const whoName = lastPartnerWho || "Your person";
+          const kind = newest.entryType === "promptAnswer" ? "answered a prompt" : "left you a memory";
+          showToast(`❤️ ${whoName} ${kind}`, "Tap Entries to see it");
+
+          if (navigator.vibrate) navigator.vibrate(35);
+        }
+
+        if (activeTab === "entries") {
+          window.__lastSeenTs = Math.max(window.__lastSeenTs, newestTs);
+        }
+      }
 
       // Helpers for grouping / formatting
       function startOfDay(dt) {
@@ -826,7 +1079,7 @@ function startFeedListener() {
         const day0 = dt ? startOfDay(dt) : startOfDay(new Date(0));
         const key = day0.getTime();
         if (!groups.has(key)) groups.set(key, { day0, items: [] });
-        groups.get(key).items.push({ ...e, __dt: dt });
+        groups.get(key).items.push({ ...e, id: e.id, __dt: dt });
       }
 
       // Sort day groups newest -> oldest
@@ -887,6 +1140,25 @@ function startFeedListener() {
             </div>
 
             ${entry.imageUrl ? `<img class="entryImage" src="${entry.imageUrl}" alt="Memory photo">` : ``}
+
+            <div class="reactionRow">
+              <button
+                class="heartBtn ${(() => {
+                  const u = auth.currentUser;
+                  const uid = u ? u.uid : "";
+                  const reacted = entry.reactions && uid && entry.reactions[uid];
+                  return reacted ? "active" : "";
+                })()}"
+                id="heart_${entry.id}"
+                onclick="toggleHeart('${entry.id}')"
+              >❤️ Love</button>
+
+              <div class="heartCount">${(() => {
+                const r = entry.reactions || {};
+                const n = Object.keys(r).length;
+                return n > 0 ? `${n} ${n === 1 ? "heart" : "hearts"}` : "";
+              })()}</div>
+            </div>
           `;
 
           feed.appendChild(card);
@@ -898,6 +1170,89 @@ function startFeedListener() {
       alert("Feed error: " + (err?.message || "unknown error"));
     }
   );
+}
+
+async function savePromptAnswer() {
+  const user = auth.currentUser;
+  if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
+    alert("Sign in first.");
+    showTab("signin");
+    return;
+  }
+
+  if (!currentPromptText) {
+    alert("Spin a prompt first, then answer it.");
+    return;
+  }
+
+  const text = document.getElementById("promptAnswerText").value.trim();
+  const link = document.getElementById("promptAnswerLink").value.trim();
+  const who = document.getElementById("promptAnswerWho").value;
+  const imageInput = document.getElementById("promptAnswerImage");
+
+  if (!text && !link && imageInput.files.length === 0) {
+    alert("Add an answer, a link, or a photo first.");
+    return;
+  }
+
+  // Allow iPhone photos; compress under 5 MB before upload.
+  // Still guard against truly enormous files that could hang the browser.
+  if (imageInput.files.length > 0) {
+    const file = imageInput.files[0];
+    if (file.size > 40 * 1024 * 1024) {
+      alert("That photo is extremely large. Try a smaller one.");
+      return;
+    }
+  }
+
+  let imageUrl = "";
+
+  if (imageInput.files.length > 0) {
+    const file = imageInput.files[0];
+    try {
+      const dataUrl = await compressImageUnderBytes(file, 5 * 1024 * 1024);
+      if (dataUrlBytes(dataUrl) > 5 * 1024 * 1024) {
+        alert("Could not compress this photo under 5 MB. Try cropping it or choosing a different photo.");
+        return;
+      }
+      const path = `entries/${user.uid}/${Date.now()}.jpg`;
+      const imgRef = storageRef(storage, path);
+      await uploadString(imgRef, dataUrl, "data_url");
+      imageUrl = await getDownloadURL(imgRef);
+    } catch (err) {
+      console.error("Image upload error:", err);
+      alert("Photo upload failed: " + (err?.message || "unknown error"));
+      return;
+    }
+  }
+
+  try {
+    await addDoc(collection(db, "entries"), {
+      who,
+      text,
+      link,
+      entryType: "promptAnswer",
+      promptCategory: currentPromptCategory,
+      promptText: currentPromptText,
+      imageUrl,
+      createdAt: serverTimestamp(),
+      createdAtClient: Date.now(),
+      uid: user.uid,
+      email: user.email,
+    });
+
+    document.getElementById("promptAnswerText").value = "";
+    document.getElementById("promptAnswerLink").value = "";
+    document.getElementById("promptAnswerImage").value = "";
+
+    // Keep the prompt visible for context but clear the stored prompt association
+    setCurrentPrompt("", "");
+
+    showTab("entries");
+  } catch (err) {
+    console.error("Save entry error:", err);
+    alert("Save failed: " + (err?.message || "unknown error"));
+  }
 }
 
 async function saveMemory() {
@@ -916,16 +1271,13 @@ async function saveMemory() {
     alert("Add text, a link, or a photo first.");
     return;
   }
-  if (entryMode === "prompt" && !currentPromptText) {
-    alert("Spin a prompt first, then answer it.");
-    return;
-  }
 
-  // Optional client-side file size guardrail
+  // Allow iPhone photos; compress under 5 MB before upload.
+  // Still guard against truly enormous files that could hang the browser.
   if (imageInput.files.length > 0) {
     const file = imageInput.files[0];
-    if (file.size > 8 * 1024 * 1024) {
-      alert("That photo is too large. Try a smaller one.");
+    if (file.size > 40 * 1024 * 1024) {
+      alert("That photo is extremely large. Try a smaller one.");
       return;
     }
   }
@@ -936,7 +1288,11 @@ async function saveMemory() {
     const file = imageInput.files[0];
 
     try {
-      const dataUrl = await fileToCompressedDataURL(file, 1200, 0.72);
+      const dataUrl = await compressImageUnderBytes(file, 5 * 1024 * 1024);
+      if (dataUrlBytes(dataUrl) > 5 * 1024 * 1024) {
+        alert("Could not compress this photo under 5 MB. Try cropping it or choosing a different photo.");
+        return;
+      }
       const path = `entries/${user.uid}/${Date.now()}.jpg`;
       const imgRef = storageRef(storage, path);
 
@@ -954,9 +1310,9 @@ async function saveMemory() {
       who,
       text,
       link,
-      entryType: entryMode === "prompt" ? "promptAnswer" : "memory",
-      promptCategory: entryMode === "prompt" ? currentPromptCategory : "",
-      promptText: entryMode === "prompt" ? currentPromptText : "",
+      entryType: "memory",
+      promptCategory: "",
+      promptText: "",
       imageUrl,
       createdAt: serverTimestamp(),
       createdAtClient: Date.now(),
@@ -967,7 +1323,6 @@ async function saveMemory() {
     document.getElementById("memoryText").value = "";
     document.getElementById("memoryLink").value = "";
     document.getElementById("memoryImage").value = "";
-    setCurrentPrompt("", "");
   } catch (err) {
     console.error("Save entry error:", err);
     alert("Save failed: " + (err?.message || "unknown error"));
@@ -985,6 +1340,7 @@ onAuthStateChanged(auth, (user) => {
 
   if (isAllowed) {
     startFeedListener();
+    updateEntriesBadge();
   } else {
     if (unsubscribeFeed) unsubscribeFeed();
     unsubscribeFeed = null;
@@ -994,8 +1350,8 @@ onAuthStateChanged(auth, (user) => {
 
 // Disable vault inputs until signed in
 setAuthUI(null);
-showTab("prompts");
-setEntryMode("memory");
+showTab("home");
+updateEntriesBadge();
 </script>
 
 </body>
