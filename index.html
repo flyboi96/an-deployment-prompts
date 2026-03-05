@@ -763,12 +763,11 @@ function showTab(tab) {
     document.getElementById(tabs[k]).classList.toggle("active", k === tab);
   }
 
-  // Clear unseen badge when viewing Entries
+  // When the user opens Entries, mark partner updates as “seen” based on real entry timestamps (done in listener)
   if (tab === "entries") {
     unseenFromPartner = 0;
     lastPartnerWho = "";
     updateEntriesBadge();
-    // Mark as seen using entry timestamps inside the feed listener (server time when available)
   }
 }
 
@@ -877,13 +876,15 @@ function spinPrompt(type) {
   const promptElement = document.getElementById("prompt");
   let spins = 16;
   let speed = 60;
+  let pendingSwap = null;
 
   function step() {
     const pool = availablePrompts.length ? availablePrompts : allPrompts;
     const randomPrompt = pool[Math.floor(Math.random() * pool.length)];
 
     promptElement.style.opacity = 0;
-    setTimeout(() => {
+    if (pendingSwap) clearTimeout(pendingSwap);
+    pendingSwap = setTimeout(() => {
       promptElement.innerText = randomPrompt;
       promptElement.style.opacity = 1;
     }, 60);
@@ -894,7 +895,14 @@ function spinPrompt(type) {
     if (spins <= 0) {
       const finalPool = availablePrompts.length ? availablePrompts : allPrompts;
       const finalPrompt = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+      if (pendingSwap) {
+        clearTimeout(pendingSwap);
+        pendingSwap = null;
+      }
+
       promptElement.innerText = finalPrompt;
+      promptElement.style.opacity = 1;
       setCurrentPrompt(type, finalPrompt);
       showTab("prompts");
       const ta = document.getElementById("promptAnswerText");
@@ -1118,27 +1126,56 @@ function startFeedListener() {
       }
 
       if (docs.length > 0 && auth.currentUser) {
-        const newest = docs[0];
         const myEmail = auth.currentUser.email || "";
-        const fromPartner = newest.email && newest.email !== myEmail;
-        const newestTs = entryTimeMs(newest);
 
-        if (fromPartner && newestTs > window.__lastSeenTs && activeTab !== "entries") {
-          unseenFromPartner += 1;
-          lastPartnerWho = (newest.who || "").trim();
+        // Look for unseen partner entries in the recent window.
+        // Important: the newest doc might be MY post, which would otherwise hide the partner post.
+        const unseenPartner = [];
+
+        for (const d of docs) {
+          const ts = entryTimeMs(d);
+          if (!ts) continue;
+
+          const fromPartner = d.email && d.email !== myEmail;
+          if (!fromPartner) continue;
+
+          if (ts > window.__lastSeenTs) unseenPartner.push({ d, ts });
+        }
+
+        // Keep them sorted newest -> oldest
+        unseenPartner.sort((a, b) => b.ts - a.ts);
+
+        if (unseenPartner.length > 0 && activeTab !== "entries") {
+          // Badge count = number of unseen partner entries in this snapshot window
+          unseenFromPartner = unseenPartner.length;
+          lastPartnerWho = (unseenPartner[0].d.who || "").trim();
           updateEntriesBadge();
+
+          // Toast only for the newest unseen partner entry
+          const newest = unseenPartner[0].d;
+          const newestTs = unseenPartner[0].ts;
 
           const whoName = lastPartnerWho || "Your person";
           const kind = newest.entryType === "promptAnswer" ? "answered a prompt" : "left you a memory";
-          showToast(`❤️ ${whoName} ${kind}`, "Tap Entries to see it");
+          showToast(`❤️ ${whoName} ${kind}`, unseenPartner.length > 1 ? `+${unseenPartner.length - 1} more — tap Entries` : "Tap Entries to see it");
 
           if (navigator.vibrate) navigator.vibrate(35);
 
-          window.__lastSeenTs = newestTs;
+          // IMPORTANT: do NOT advance __lastSeenTs here; only advance when user actually views Entries.
+          // This prevents losing notifications if the toast disappears.
         }
 
         if (activeTab === "entries") {
-          window.__lastSeenTs = Math.max(window.__lastSeenTs, newestTs);
+          // When viewing Entries, mark everything up to the newest partner entry as seen
+          if (unseenPartner.length > 0) {
+            const maxTs = unseenPartner[0].ts;
+            window.__lastSeenTs = Math.max(window.__lastSeenTs, maxTs);
+          }
+
+          // Clear the badge while on Entries
+          unseenFromPartner = 0;
+          lastPartnerWho = "";
+          updateEntriesBadge();
         }
       }
 
