@@ -1,76 +1,353 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
 <title>A&N Deployment Prompts</title>
 
-  <!-- test -->
-  <!-- test -->
+<link rel="apple-touch-icon" href="icon.png">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="A&N Prompts">
 
 <style>
 
-body{
-font-family: Arial;
-text-align:center;
-background:#f6f7fb;
-padding:50px;
+*{
+box-sizing:border-box;
 }
 
-h1{
-margin-bottom:40px;
+body{
+
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+
+margin:0;
+
+background:
+linear-gradient(
+180deg,
+#4facfe 0%,
+#00f2fe 100%
+);
+
+min-height:100vh;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+padding:
+env(safe-area-inset-top)
+20px
+env(safe-area-inset-bottom);
+
+color:#111;
+
+}
+
+.container{
+
+width:100%;
+max-width:420px;
+
+}
+
+.header{
+
+font-size:28px;
+font-weight:700;
+
+color:white;
+
+text-align:center;
+
+margin-bottom:25px;
+
 }
 
 button{
+
+width:100%;
+
+padding:18px;
+
+margin:10px 0;
+
 font-size:18px;
-padding:15px 25px;
-margin:10px;
+
 border:none;
-border-radius:10px;
-background:#4a6cff;
+
+border-radius:18px;
+
+font-weight:600;
+
 color:white;
+
 cursor:pointer;
+
+transition:transform .1s ease, box-shadow .1s ease;
+
+box-shadow:0 8px 20px rgba(0,0,0,0.2);
+
 }
 
-button:hover{
-background:#2f4ed8;
+button:active{
+
+transform:scale(.95);
+
+box-shadow:0 4px 10px rgba(0,0,0,0.2);
+
+}
+
+.random{
+
+background:#007AFF;
+
+}
+
+.photo{
+
+background:#34C759;
+
+}
+
+.deep{
+
+background:#FF3B30;
+
+}
+
+.pimienta{
+
+background:#AF52DE;
+
+}
+
+.card{
+
+margin-top:25px;
+
+backdrop-filter:blur(18px);
+
+background:rgba(255,255,255,0.75);
+
+border-radius:22px;
+
+padding:28px;
+
+font-size:22px;
+
+line-height:1.4;
+
+box-shadow:0 12px 35px rgba(0,0,0,0.25);
+
+min-height:150px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+text-align:center;
+
+position:relative;
+
+overflow:hidden;
+
 }
 
 #prompt{
-margin-top:40px;
-font-size:22px;
-max-width:600px;
-margin-left:auto;
-margin-right:auto;
+
+transition:transform .2s ease, opacity .2s ease;
+
+}
+
+.spinner{
+
+width:30px;
+height:30px;
+
+border-radius:50%;
+
+border:3px solid rgba(0,0,0,.15);
+border-top:3px solid #007AFF;
+
+animation:spin 1s linear infinite;
+
+}
+
+@keyframes spin{
+
+0%{ transform:rotate(0deg); }
+100%{ transform:rotate(360deg); }
+
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h1>A&N Deployment Prompts</h1>
+<div class="container">
 
-<button onclick="getPrompt('Short Prompts')">Random Prompt</button>
-<button onclick="getPrompt('Photo Prompts')">Photo Prompt</button>
-<button onclick="getPrompt('Deep Questions')">Deep Question</button>
+<div class="header">
 
-<div id="prompt"></div>
+A&N Deployment Prompts
+
+</div>
+
+<button class="random" onclick="spinPrompt('Short Prompts')">
+🎲 Random Prompt
+</button>
+
+<button class="photo" onclick="spinPrompt('Photo Prompts')">
+📸 Photo Prompt
+</button>
+
+<button class="deep" onclick="spinPrompt('Deep Questions')">
+❤️ Deep Question
+</button>
+
+<button class="pimienta" onclick="spinPrompt('Pimienta Prompts')">
+🐱 Pimienta Prompt
+</button>
+
+<div class="card">
+
+<div id="prompt">
+<div class="spinner"></div>
+</div>
+
+</div>
+
+</div>
 
 <script>
 
-const sheetURL = "https://opensheet.elk.sh/18Gxh6zCgx7bWifQCmn_HsxQGkXIMXzp2mKhvikl91OU/Prompts"
+const sheetURL =
+"https://opensheet.elk.sh/18Gxh6zCgx7bWifQCmn_HsxQGkXIMXzp2mKhvikl91OU/Prompts"
 
-async function getPrompt(type){
+let sheetData = []
+
+// load sheet
+async function loadSheet(){
+
+try{
 
 const response = await fetch(sheetURL)
-const data = await response.json()
 
-const prompts = data
+sheetData = await response.json()
+
+document.getElementById("prompt").innerText =
+"Tap a button to spin a prompt"
+
+}catch{
+
+document.getElementById("prompt").innerText =
+"Could not load prompts"
+
+}
+
+}
+
+loadSheet()
+
+// get history from localStorage
+function getHistory(type){
+
+const saved = localStorage.getItem("promptHistory_" + type)
+
+return saved ? JSON.parse(saved) : []
+
+}
+
+// save history
+function saveHistory(type, history){
+
+localStorage.setItem(
+"promptHistory_" + type,
+JSON.stringify(history)
+)
+
+}
+
+function spinPrompt(type){
+
+if(sheetData.length === 0){
+
+document.getElementById("prompt").innerText =
+"Prompts still loading..."
+
+return
+
+}
+
+const allPrompts = sheetData
 .map(row => row[type])
 .filter(p => p && p.length > 0)
 
-const randomPrompt = prompts[Math.floor(Math.random()*prompts.length)]
+let history = getHistory(type)
 
-document.getElementById("prompt").innerText = randomPrompt
+// reset history if all prompts used
+if(history.length >= allPrompts.length){
+
+history = []
+
+}
+
+const availablePrompts =
+allPrompts.filter(p => !history.includes(p))
+
+let spins = 16
+
+let speed = 60
+
+const promptElement =
+document.getElementById("prompt")
+
+const spinner = setInterval(()=>{
+
+const randomPrompt =
+availablePrompts[Math.floor(Math.random()*availablePrompts.length)]
+
+promptElement.style.opacity = 0
+
+setTimeout(()=>{
+
+promptElement.innerText = randomPrompt
+
+promptElement.style.opacity = 1
+
+},60)
+
+spins--
+
+speed += 8
+
+if(spins <= 0){
+
+clearInterval(spinner)
+
+const finalPrompt =
+availablePrompts[Math.floor(Math.random()*availablePrompts.length)]
+
+promptElement.innerText = finalPrompt
+
+history.push(finalPrompt)
+
+saveHistory(type, history)
+
+if(navigator.vibrate){
+navigator.vibrate(40)
+}
+
+}
+
+},speed)
 
 }
 
