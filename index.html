@@ -548,10 +548,6 @@ A&N Deployment Prompts
       <img id="promptPhotoThumb" class="thumb" alt="Selected photo preview">
     </div>
 
-    <select id="promptAnswerWho">
-      <option>Alex</option>
-      <option>Nathalia</option>
-    </select>
 
     <button class="saveMemory" onclick="savePromptAnswer()">💾 Save Prompt Answer</button>
   </div>
@@ -615,10 +611,6 @@ A&N Deployment Prompts
       <img id="memoryPhotoThumb" class="thumb" alt="Selected photo preview">
     </div>
 
-    <select id="memoryWho">
-      <option>Alex</option>
-      <option>Nathalia</option>
-    </select>
 
     <button class="saveMemory" onclick="saveMemory()">💾 Save Memory</button>
   </div>
@@ -686,6 +678,13 @@ const ALLOWED_EMAILS = new Set([
   "corbin.xela@gmail.com",
   "sharolgarzon11@gmail.com",
 ]);
+
+function whoFromEmail(email) {
+  const e = (email || "").toLowerCase().trim();
+  if (e === "corbin.xela@gmail.com") return "Alex";
+  if (e === "sharolgarzon11@gmail.com") return "Nathalia";
+  return "";
+}
 
 // Use a fixed timezone so Alex and Nathalia see the same “Today/Yesterday” groupings
 const APP_TIMEZONE = "America/Chicago";
@@ -1011,35 +1010,17 @@ function setAuthUI(user) {
   const memLib = document.getElementById("memoryImageLibrary");
   if (memLib) memLib.disabled = !isSignedIn;
 
-  document.getElementById("memoryWho").disabled = !isSignedIn;
-
   // Prompt answer composer
   const paText = document.getElementById("promptAnswerText");
   const paLink = document.getElementById("promptAnswerLink");
-  const paWho = document.getElementById("promptAnswerWho");
   if (paText) paText.disabled = !isSignedIn;
   if (paLink) paLink.disabled = !isSignedIn;
-  
+
   const paLib = document.getElementById("promptAnswerImageLibrary");
   if (paLib) paLib.disabled = !isSignedIn;
 
-  if (paWho) paWho.disabled = !isSignedIn;
-
-  // Default "who" for prompt answers
-  if (isSignedIn && paWho) {
-    if (user.email === "corbin.xela@gmail.com") paWho.value = "Alex";
-    if (user.email === "sharolgarzon11@gmail.com") paWho.value = "Nathalia";
-  }
-
   // Clear password after sign-in
   if (isSignedIn) passInput.value = "";
-
-  // Default "who" based on email
-  if (isSignedIn) {
-    const whoSelect = document.getElementById("memoryWho");
-    if (user.email === "corbin.xela@gmail.com") whoSelect.value = "Alex";
-    if (user.email === "sharolgarzon11@gmail.com") whoSelect.value = "Nathalia";
-  }
 }
 
 async function signIn() {
@@ -1363,7 +1344,7 @@ async function savePromptAnswer() {
 
   const text = document.getElementById("promptAnswerText").value.trim();
   const link = document.getElementById("promptAnswerLink").value.trim();
-  const who = document.getElementById("promptAnswerWho").value;
+  const who = whoFromEmail(user.email);
   const imageInputLib = document.getElementById("promptAnswerImageLibrary");
   const imageFile = (imageInputLib && imageInputLib.files && imageInputLib.files[0])
     ? imageInputLib.files[0]
@@ -1444,7 +1425,7 @@ async function saveMemory() {
 
   const text = document.getElementById("memoryText").value.trim();
   const link = document.getElementById("memoryLink").value.trim();
-  const who = document.getElementById("memoryWho").value;
+  const who = whoFromEmail(user.email);
   const imageInputLib = document.getElementById("memoryImageLibrary");
   const imageFile = (imageInputLib && imageInputLib.files && imageInputLib.files[0])
     ? imageInputLib.files[0]
