@@ -432,6 +432,29 @@ border:1px solid #ddd;
   color:rgba(0,0,0,.60);
 }
 
+.pickRow{
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.pickBtn{
+  flex:1;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(0,0,0,.03);
+  color:#111;
+  font-weight:800;
+  font-size:14px;
+  cursor:pointer;
+  box-shadow:none;
+}
+
+.pickBtn:active{
+  transform:scale(.98);
+}
+
 </style>
 </head>
 
@@ -479,14 +502,20 @@ A&N Deployment Prompts
   <div class="vault" style="margin-top:18px;">
     <h2>Leave an Answer</h2>
 
-    <div class="replyPill show" id="replyPill">
+    <div class="replyPill" id="replyPill">
       <div class="label">Replying to</div>
       <div class="text" id="replyText">Spin a prompt first.</div>
     </div>
 
     <textarea id="promptAnswerText" placeholder="Write your answer — one line counts..."></textarea>
     <input id="promptAnswerLink" placeholder="Paste a link (song, reel, etc)">
-    <input type="file" id="promptAnswerImage" accept="image/*">
+    <div class="pickRow">
+      <button class="pickBtn" type="button" onclick="openPromptCamera()">📷 Take Photo</button>
+      <button class="pickBtn" type="button" onclick="openPromptLibrary()">🖼️ Choose Photo</button>
+    </div>
+
+    <input type="file" id="promptAnswerImageCamera" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="promptAnswerImageLibrary" accept="image/*" style="display:none;">
 
     <select id="promptAnswerWho">
       <option>Alex</option>
@@ -545,7 +574,13 @@ A&N Deployment Prompts
 
     <textarea id="memoryText" placeholder="Leave a little piece of your day here..."></textarea>
     <input id="memoryLink" placeholder="Paste a link (song, reel, etc)">
-    <input type="file" id="memoryImage" accept="image/*">
+    <div class="pickRow">
+      <button class="pickBtn" type="button" onclick="openMemoryCamera()">📷 Take Photo</button>
+      <button class="pickBtn" type="button" onclick="openMemoryLibrary()">🖼️ Choose Photo</button>
+    </div>
+
+    <input type="file" id="memoryImageCamera" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="memoryImageLibrary" accept="image/*" style="display:none;">
 
     <select id="memoryWho">
       <option>Alex</option>
@@ -613,10 +648,61 @@ const firebaseConfig = {
   measurementId: "G-DFCRPHJ9ER",
 };
 
+
 const ALLOWED_EMAILS = new Set([
   "corbin.xela@gmail.com",
   "sharolgarzon11@gmail.com",
 ]);
+
+// Use a fixed timezone so Alex and Nathalia see the same “Today/Yesterday” groupings
+const APP_TIMEZONE = "America/Chicago";
+
+function entryTimeMs(entry) {
+  // Prefer server timestamp if present; fall back to client timestamp
+  if (entry && entry.createdAt && typeof entry.createdAt.toMillis === "function") {
+    return entry.createdAt.toMillis();
+  }
+  return typeof entry?.createdAtClient === "number" ? entry.createdAtClient : 0;
+}
+
+function dayKeyForMs(ms) {
+  // YYYY-MM-DD in APP_TIMEZONE (en-CA formats as 2026-03-05)
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
+}
+
+function prettyDayLabelFromMs(ms, todayKey, yesterdayKey) {
+  const key = dayKeyForMs(ms);
+  if (key === todayKey) return "Today";
+  if (key === yesterdayKey) return "Yesterday";
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(ms));
+}
+
+function timeLabelFromMs(ms, isToday) {
+  if (isToday) {
+    return new Intl.DateTimeFormat(undefined, {
+      timeZone: APP_TIMEZONE,
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(ms));
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(ms));
+}
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -637,6 +723,10 @@ window.spinPrompt = spinPrompt;
 window.showTab = showTab;
 window.savePromptAnswer = savePromptAnswer;
 window.toggleHeart = toggleHeart;
+window.openPromptCamera = openPromptCamera;
+window.openPromptLibrary = openPromptLibrary;
+window.openMemoryCamera = openMemoryCamera;
+window.openMemoryLibrary = openMemoryLibrary;
 
 // Tracks the last "final" prompt shown so we can save it with an answer
 let currentPromptCategory = "";
@@ -681,7 +771,7 @@ function showTab(tab) {
     unseenFromPartner = 0;
     lastPartnerWho = "";
     updateEntriesBadge();
-    window.__lastSeenTs = Date.now();
+    // Mark as seen using entry timestamps inside the feed listener (server time when available)
   }
 }
 
@@ -711,15 +801,37 @@ function showToast(title, subtitle = "") {
 }
 
 function refreshReplyPill() {
+  const pill = document.getElementById("replyPill");
   const textEl = document.getElementById("replyText");
 
+  if (!pill || !textEl) return;
+
   if (!currentPromptText) {
+    pill.classList.remove("show");
     textEl.textContent = "Spin a prompt first.";
     return;
   }
 
+  pill.classList.add("show");
   const cat = currentPromptCategory ? `${currentPromptCategory}: ` : "";
   textEl.textContent = cat + currentPromptText;
+}
+
+function openPromptCamera(){
+  const el = document.getElementById("promptAnswerImageCamera");
+  if (el) el.click();
+}
+function openPromptLibrary(){
+  const el = document.getElementById("promptAnswerImageLibrary");
+  if (el) el.click();
+}
+function openMemoryCamera(){
+  const el = document.getElementById("memoryImageCamera");
+  if (el) el.click();
+}
+function openMemoryLibrary(){
+  const el = document.getElementById("memoryImageLibrary");
+  if (el) el.click();
 }
 
 /* ============================
@@ -833,17 +945,26 @@ function setAuthUI(user) {
   // Enable/disable Memory Vault inputs when signed out / unauthorized
   document.getElementById("memoryText").disabled = !isSignedIn;
   document.getElementById("memoryLink").disabled = !isSignedIn;
-  document.getElementById("memoryImage").disabled = !isSignedIn;
+
+  const memCam = document.getElementById("memoryImageCamera");
+  const memLib = document.getElementById("memoryImageLibrary");
+  if (memCam) memCam.disabled = !isSignedIn;
+  if (memLib) memLib.disabled = !isSignedIn;
+
   document.getElementById("memoryWho").disabled = !isSignedIn;
 
   // Prompt answer composer
   const paText = document.getElementById("promptAnswerText");
   const paLink = document.getElementById("promptAnswerLink");
-  const paImg = document.getElementById("promptAnswerImage");
   const paWho = document.getElementById("promptAnswerWho");
   if (paText) paText.disabled = !isSignedIn;
   if (paLink) paLink.disabled = !isSignedIn;
-  if (paImg) paImg.disabled = !isSignedIn;
+  
+  const paCam = document.getElementById("promptAnswerImageCamera");
+  const paLib = document.getElementById("promptAnswerImageLibrary");
+  if (paCam) paCam.disabled = !isSignedIn;
+  if (paLib) paLib.disabled = !isSignedIn;
+
   if (paWho) paWho.disabled = !isSignedIn;
 
   // Default "who" for prompt answers
@@ -994,7 +1115,7 @@ function startFeedListener() {
   if (unsubscribeFeed) unsubscribeFeed();
 
   const entriesRef = collection(db, "entries");
-  const q = query(entriesRef, orderBy("createdAtClient", "desc"), limit(50));
+  const q = query(entriesRef, orderBy("createdAtClient", "desc"), limit(75));
 
   unsubscribeFeed = onSnapshot(
     q,
@@ -1007,11 +1128,15 @@ function startFeedListener() {
         docs.push({ id: d.id, ...d.data() });
       });
 
+      if (window.__lastSeenTs === 0 && docs.length > 0) {
+        window.__lastSeenTs = entryTimeMs(docs[0]) || Date.now();
+      }
+
       if (docs.length > 0 && auth.currentUser) {
         const newest = docs[0];
         const myEmail = auth.currentUser.email || "";
         const fromPartner = newest.email && newest.email !== myEmail;
-        const newestTs = typeof newest.createdAtClient === "number" ? newest.createdAtClient : 0;
+        const newestTs = entryTimeMs(newest);
 
         if (fromPartner && newestTs > window.__lastSeenTs && activeTab !== "entries") {
           unseenFromPartner += 1;
@@ -1023,6 +1148,8 @@ function startFeedListener() {
           showToast(`❤️ ${whoName} ${kind}`, "Tap Entries to see it");
 
           if (navigator.vibrate) navigator.vibrate(35);
+
+          window.__lastSeenTs = newestTs;
         }
 
         if (activeTab === "entries") {
@@ -1030,73 +1157,36 @@ function startFeedListener() {
         }
       }
 
-      // Helpers for grouping / formatting
-      function startOfDay(dt) {
-        const x = new Date(dt);
-        x.setHours(0, 0, 0, 0);
-        return x;
+      // Helpers for grouping / formatting (timezone-safe)
+      const nowMs = Date.now();
+      const todayKey = dayKeyForMs(nowMs);
+      const yesterdayKey = dayKeyForMs(nowMs - 24 * 60 * 60 * 1000);
+
+      function timeLabelForEntry(entryMs) {
+        const isToday = dayKeyForMs(entryMs) === todayKey;
+        return timeLabelFromMs(entryMs, isToday);
       }
 
-      const now = new Date();
-      const today0 = startOfDay(now);
-      const yesterday0 = new Date(today0);
-      yesterday0.setDate(yesterday0.getDate() - 1);
-
-      function dayLabel(day0) {
-        const t = day0.getTime();
-        if (t === today0.getTime()) return "Today";
-        if (t === yesterday0.getTime()) return "Yesterday";
-        return day0.toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        });
-      }
-
-      function timeLabel(dt) {
-        const d0 = startOfDay(dt);
-        const isToday = d0.getTime() === today0.getTime();
-        if (isToday) {
-          return dt.toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          });
-        }
-        return dt.toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        });
-      }
-
-      // Group entries by local day
+      // Group entries by day in APP_TIMEZONE
       const groups = new Map();
       for (const e of docs) {
-        const dt = e.createdAt?.toDate
-          ? e.createdAt.toDate()
-          : (typeof e.createdAtClient === "number" ? new Date(e.createdAtClient) : null);
-        const day0 = dt ? startOfDay(dt) : startOfDay(new Date(0));
-        const key = day0.getTime();
-        if (!groups.has(key)) groups.set(key, { day0, items: [] });
-        groups.get(key).items.push({ ...e, id: e.id, __dt: dt });
+        const ms = entryTimeMs(e);
+        const key = dayKeyForMs(ms);
+        if (!groups.has(key)) groups.set(key, { key, ms, items: [] });
+        groups.get(key).items.push({ ...e, id: e.id, __ms: ms });
       }
 
-      // Sort day groups newest -> oldest
-      const sortedGroups = Array.from(groups.values()).sort((a, b) => b.day0 - a.day0);
+      // Sort day groups newest -> oldest (by newest ms in group)
+      const sortedGroups = Array.from(groups.values()).sort((a, b) => b.ms - a.ms);
 
       for (const g of sortedGroups) {
         const h = document.createElement("div");
         h.className = "dayHeader";
-        h.textContent = dayLabel(g.day0);
+        h.textContent = prettyDayLabelFromMs(g.ms, todayKey, yesterdayKey);
         feed.appendChild(h);
 
         // Items already in desc order due to query, but ensure within-day ordering
-        g.items.sort((a, b) => {
-          const ta = a.__dt ? a.__dt.getTime() : 0;
-          const tb = b.__dt ? b.__dt.getTime() : 0;
-          return tb - ta;
-        });
+        g.items.sort((a, b) => (b.__ms || 0) - (a.__ms || 0));
 
         for (const entry of g.items) {
           const card = document.createElement("div");
@@ -1105,8 +1195,7 @@ function startFeedListener() {
           const who = (entry.who || "").trim();
           const whoClass = who.toLowerCase() === "alex" ? "alex" : (who.toLowerCase() === "nathalia" ? "nathalia" : "alex");
 
-          const dt = entry.__dt;
-          const ts = dt ? timeLabel(dt) : "";
+          const ts = entry.__ms ? timeLabelForEntry(entry.__ms) : "";
 
           const promptText = (entry.promptText || "").trim();
           const promptCategory = (entry.promptCategory || "").trim();
@@ -1188,17 +1277,22 @@ async function savePromptAnswer() {
   const text = document.getElementById("promptAnswerText").value.trim();
   const link = document.getElementById("promptAnswerLink").value.trim();
   const who = document.getElementById("promptAnswerWho").value;
-  const imageInput = document.getElementById("promptAnswerImage");
+  const imageInputCam = document.getElementById("promptAnswerImageCamera");
+  const imageInputLib = document.getElementById("promptAnswerImageLibrary");
+  const imageFile =
+    (imageInputCam && imageInputCam.files && imageInputCam.files[0]) ? imageInputCam.files[0] :
+    (imageInputLib && imageInputLib.files && imageInputLib.files[0]) ? imageInputLib.files[0] :
+    null;
 
-  if (!text && !link && imageInput.files.length === 0) {
+  if (!text && !link && !imageFile) {
     alert("Add an answer, a link, or a photo first.");
     return;
   }
 
   // Allow iPhone photos; compress under 5 MB before upload.
   // Still guard against truly enormous files that could hang the browser.
-  if (imageInput.files.length > 0) {
-    const file = imageInput.files[0];
+  if (imageFile) {
+    const file = imageFile;
     if (file.size > 40 * 1024 * 1024) {
       alert("That photo is extremely large. Try a smaller one.");
       return;
@@ -1207,8 +1301,8 @@ async function savePromptAnswer() {
 
   let imageUrl = "";
 
-  if (imageInput.files.length > 0) {
-    const file = imageInput.files[0];
+  if (imageFile) {
+    const file = imageFile;
     try {
       const dataUrl = await compressImageUnderBytes(file, 5 * 1024 * 1024);
       if (dataUrlBytes(dataUrl) > 5 * 1024 * 1024) {
@@ -1243,7 +1337,8 @@ async function savePromptAnswer() {
 
     document.getElementById("promptAnswerText").value = "";
     document.getElementById("promptAnswerLink").value = "";
-    document.getElementById("promptAnswerImage").value = "";
+    if (imageInputCam) imageInputCam.value = "";
+    if (imageInputLib) imageInputLib.value = "";
 
     // Keep the prompt visible for context but clear the stored prompt association
     setCurrentPrompt("", "");
@@ -1265,17 +1360,22 @@ async function saveMemory() {
   const text = document.getElementById("memoryText").value.trim();
   const link = document.getElementById("memoryLink").value.trim();
   const who = document.getElementById("memoryWho").value;
-  const imageInput = document.getElementById("memoryImage");
+  const imageInputCam = document.getElementById("memoryImageCamera");
+  const imageInputLib = document.getElementById("memoryImageLibrary");
+  const imageFile =
+    (imageInputCam && imageInputCam.files && imageInputCam.files[0]) ? imageInputCam.files[0] :
+    (imageInputLib && imageInputLib.files && imageInputLib.files[0]) ? imageInputLib.files[0] :
+    null;
 
-  if (!text && !link && imageInput.files.length === 0) {
+  if (!text && !link && !imageFile) {
     alert("Add text, a link, or a photo first.");
     return;
   }
 
   // Allow iPhone photos; compress under 5 MB before upload.
   // Still guard against truly enormous files that could hang the browser.
-  if (imageInput.files.length > 0) {
-    const file = imageInput.files[0];
+  if (imageFile) {
+    const file = imageFile;
     if (file.size > 40 * 1024 * 1024) {
       alert("That photo is extremely large. Try a smaller one.");
       return;
@@ -1284,8 +1384,8 @@ async function saveMemory() {
 
   let imageUrl = "";
 
-  if (imageInput.files.length > 0) {
-    const file = imageInput.files[0];
+  if (imageFile) {
+    const file = imageFile;
 
     try {
       const dataUrl = await compressImageUnderBytes(file, 5 * 1024 * 1024);
@@ -1322,7 +1422,8 @@ async function saveMemory() {
 
     document.getElementById("memoryText").value = "";
     document.getElementById("memoryLink").value = "";
-    document.getElementById("memoryImage").value = "";
+    if (imageInputCam) imageInputCam.value = "";
+    if (imageInputLib) imageInputLib.value = "";
   } catch (err) {
     console.error("Save entry error:", err);
     alert("Save failed: " + (err?.message || "unknown error"));
