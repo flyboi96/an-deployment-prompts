@@ -454,8 +454,34 @@ border:1px solid #ddd;
   box-shadow:none;
 }
 
+
 .pickBtn:active{
   transform:scale(.98);
+}
+
+.fileStatus{
+  margin-top:-2px;
+  margin-bottom:10px;
+  font-size:13px;
+  font-weight:800;
+  color:rgba(0,0,0,.60);
+}
+
+.fileStatus strong{
+  color:rgba(0,0,0,.78);
+}
+
+.thumbWrap{
+  margin-top:6px;
+}
+
+.thumb{
+  width:100%;
+  max-height:200px;
+  object-fit:cover;
+  border-radius:14px;
+  display:none;
+  box-shadow:0 10px 22px rgba(0,0,0,.12);
 }
 
 </style>
@@ -517,6 +543,10 @@ A&N Deployment Prompts
     </div>
 
     <input type="file" id="promptAnswerImageLibrary" accept="image/*" style="display:none;">
+    <div class="fileStatus" id="promptPhotoStatus">No photo selected</div>
+    <div class="thumbWrap">
+      <img id="promptPhotoThumb" class="thumb" alt="Selected photo preview">
+    </div>
 
     <select id="promptAnswerWho">
       <option>Alex</option>
@@ -580,6 +610,10 @@ A&N Deployment Prompts
     </div>
 
     <input type="file" id="memoryImageLibrary" accept="image/*" style="display:none;">
+    <div class="fileStatus" id="memoryPhotoStatus">No photo selected</div>
+    <div class="thumbWrap">
+      <img id="memoryPhotoThumb" class="thumb" alt="Selected photo preview">
+    </div>
 
     <select id="memoryWho">
       <option>Alex</option>
@@ -820,6 +854,37 @@ function openPromptLibrary(){
 function openMemoryLibrary(){
   const el = document.getElementById("memoryImageLibrary");
   if (el) el.click();
+}
+
+function setPhotoStatus(kind, file) {
+  const statusEl = document.getElementById(kind === "prompt" ? "promptPhotoStatus" : "memoryPhotoStatus");
+  const thumbEl = document.getElementById(kind === "prompt" ? "promptPhotoThumb" : "memoryPhotoThumb");
+
+  if (!statusEl || !thumbEl) return;
+
+  if (!file) {
+    statusEl.innerHTML = "No photo selected";
+    thumbEl.style.display = "none";
+    thumbEl.src = "";
+    return;
+  }
+
+  const mb = (file.size / (1024 * 1024)).toFixed(1);
+  statusEl.innerHTML = `Selected: <strong>${escapeHtml(file.name || "photo")}</strong> (${mb} MB)`;
+
+  // Thumbnail preview
+  try {
+    const url = URL.createObjectURL(file);
+    thumbEl.src = url;
+    thumbEl.style.display = "block";
+    // Release the old object URL after the image loads
+    thumbEl.onload = () => {
+      try { URL.revokeObjectURL(url); } catch (_) {}
+    };
+  } catch (_) {
+    // If preview fails, keep status only.
+    thumbEl.style.display = "none";
+  }
 }
 
 /* ============================
@@ -1358,6 +1423,7 @@ async function savePromptAnswer() {
     document.getElementById("promptAnswerText").value = "";
     document.getElementById("promptAnswerLink").value = "";
     if (imageInputLib) imageInputLib.value = "";
+    setPhotoStatus("prompt", null);
 
     // Keep the prompt visible for context but clear the stored prompt association
     setCurrentPrompt("", "");
@@ -1440,6 +1506,7 @@ async function saveMemory() {
     document.getElementById("memoryText").value = "";
     document.getElementById("memoryLink").value = "";
     if (imageInputLib) imageInputLib.value = "";
+    setPhotoStatus("memory", null);
   } catch (err) {
     console.error("Save entry error:", err);
     alert("Save failed: " + (err?.message || "unknown error"));
@@ -1464,6 +1531,27 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById("memoryFeed").innerHTML = "";
   }
 });
+
+// Photo input status/preview
+const paLibBoot = document.getElementById("promptAnswerImageLibrary");
+if (paLibBoot) {
+  paLibBoot.addEventListener("change", () => {
+    const f = paLibBoot.files && paLibBoot.files[0] ? paLibBoot.files[0] : null;
+    setPhotoStatus("prompt", f);
+  });
+}
+
+const memLibBoot = document.getElementById("memoryImageLibrary");
+if (memLibBoot) {
+  memLibBoot.addEventListener("change", () => {
+    const f = memLibBoot.files && memLibBoot.files[0] ? memLibBoot.files[0] : null;
+    setPhotoStatus("memory", f);
+  });
+}
+
+// Ensure status starts clean
+setPhotoStatus("prompt", null);
+setPhotoStatus("memory", null);
 
 // Disable vault inputs until signed in
 setAuthUI(null);
