@@ -10,7 +10,10 @@
 <title>A&N Deployment Prompts</title>
 
 <!-- iPhone App Settings -->
-<link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="A&N Prompts">
@@ -510,11 +513,9 @@ A&N Deployment Prompts
     <textarea id="promptAnswerText" placeholder="Write your answer — one line counts..."></textarea>
     <input id="promptAnswerLink" placeholder="Paste a link (song, reel, etc)">
     <div class="pickRow">
-      <button class="pickBtn" type="button" onclick="openPromptCamera()">📷 Take Photo</button>
       <button class="pickBtn" type="button" onclick="openPromptLibrary()">🖼️ Choose Photo</button>
     </div>
 
-    <input type="file" id="promptAnswerImageCamera" accept="image/*" capture="environment" style="display:none;">
     <input type="file" id="promptAnswerImageLibrary" accept="image/*" style="display:none;">
 
     <select id="promptAnswerWho">
@@ -575,11 +576,9 @@ A&N Deployment Prompts
     <textarea id="memoryText" placeholder="Leave a little piece of your day here..."></textarea>
     <input id="memoryLink" placeholder="Paste a link (song, reel, etc)">
     <div class="pickRow">
-      <button class="pickBtn" type="button" onclick="openMemoryCamera()">📷 Take Photo</button>
       <button class="pickBtn" type="button" onclick="openMemoryLibrary()">🖼️ Choose Photo</button>
     </div>
 
-    <input type="file" id="memoryImageCamera" accept="image/*" capture="environment" style="display:none;">
     <input type="file" id="memoryImageLibrary" accept="image/*" style="display:none;">
 
     <select id="memoryWho">
@@ -723,9 +722,7 @@ window.spinPrompt = spinPrompt;
 window.showTab = showTab;
 window.savePromptAnswer = savePromptAnswer;
 window.toggleHeart = toggleHeart;
-window.openPromptCamera = openPromptCamera;
 window.openPromptLibrary = openPromptLibrary;
-window.openMemoryCamera = openMemoryCamera;
 window.openMemoryLibrary = openMemoryLibrary;
 
 // Tracks the last "final" prompt shown so we can save it with an answer
@@ -817,16 +814,8 @@ function refreshReplyPill() {
   textEl.textContent = cat + currentPromptText;
 }
 
-function openPromptCamera(){
-  const el = document.getElementById("promptAnswerImageCamera");
-  if (el) el.click();
-}
 function openPromptLibrary(){
   const el = document.getElementById("promptAnswerImageLibrary");
-  if (el) el.click();
-}
-function openMemoryCamera(){
-  const el = document.getElementById("memoryImageCamera");
   if (el) el.click();
 }
 function openMemoryLibrary(){
@@ -946,9 +935,7 @@ function setAuthUI(user) {
   document.getElementById("memoryText").disabled = !isSignedIn;
   document.getElementById("memoryLink").disabled = !isSignedIn;
 
-  const memCam = document.getElementById("memoryImageCamera");
   const memLib = document.getElementById("memoryImageLibrary");
-  if (memCam) memCam.disabled = !isSignedIn;
   if (memLib) memLib.disabled = !isSignedIn;
 
   document.getElementById("memoryWho").disabled = !isSignedIn;
@@ -960,9 +947,7 @@ function setAuthUI(user) {
   if (paText) paText.disabled = !isSignedIn;
   if (paLink) paLink.disabled = !isSignedIn;
   
-  const paCam = document.getElementById("promptAnswerImageCamera");
   const paLib = document.getElementById("promptAnswerImageLibrary");
-  if (paCam) paCam.disabled = !isSignedIn;
   if (paLib) paLib.disabled = !isSignedIn;
 
   if (paWho) paWho.disabled = !isSignedIn;
@@ -1277,12 +1262,10 @@ async function savePromptAnswer() {
   const text = document.getElementById("promptAnswerText").value.trim();
   const link = document.getElementById("promptAnswerLink").value.trim();
   const who = document.getElementById("promptAnswerWho").value;
-  const imageInputCam = document.getElementById("promptAnswerImageCamera");
   const imageInputLib = document.getElementById("promptAnswerImageLibrary");
-  const imageFile =
-    (imageInputCam && imageInputCam.files && imageInputCam.files[0]) ? imageInputCam.files[0] :
-    (imageInputLib && imageInputLib.files && imageInputLib.files[0]) ? imageInputLib.files[0] :
-    null;
+  const imageFile = (imageInputLib && imageInputLib.files && imageInputLib.files[0])
+    ? imageInputLib.files[0]
+    : null;
 
   if (!text && !link && !imageFile) {
     alert("Add an answer, a link, or a photo first.");
@@ -1337,7 +1320,6 @@ async function savePromptAnswer() {
 
     document.getElementById("promptAnswerText").value = "";
     document.getElementById("promptAnswerLink").value = "";
-    if (imageInputCam) imageInputCam.value = "";
     if (imageInputLib) imageInputLib.value = "";
 
     // Keep the prompt visible for context but clear the stored prompt association
@@ -1360,12 +1342,10 @@ async function saveMemory() {
   const text = document.getElementById("memoryText").value.trim();
   const link = document.getElementById("memoryLink").value.trim();
   const who = document.getElementById("memoryWho").value;
-  const imageInputCam = document.getElementById("memoryImageCamera");
   const imageInputLib = document.getElementById("memoryImageLibrary");
-  const imageFile =
-    (imageInputCam && imageInputCam.files && imageInputCam.files[0]) ? imageInputCam.files[0] :
-    (imageInputLib && imageInputLib.files && imageInputLib.files[0]) ? imageInputLib.files[0] :
-    null;
+  const imageFile = (imageInputLib && imageInputLib.files && imageInputLib.files[0])
+    ? imageInputLib.files[0]
+    : null;
 
   if (!text && !link && !imageFile) {
     alert("Add text, a link, or a photo first.");
@@ -1422,7 +1402,6 @@ async function saveMemory() {
 
     document.getElementById("memoryText").value = "";
     document.getElementById("memoryLink").value = "";
-    if (imageInputCam) imageInputCam.value = "";
     if (imageInputLib) imageInputLib.value = "";
   } catch (err) {
     console.error("Save entry error:", err);
