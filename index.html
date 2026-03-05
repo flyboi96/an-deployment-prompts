@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>A&N Deployment Prompts</title>
+
+<style>
+
+body{
+font-family: Arial;
+text-align:center;
+background:#f6f7fb;
+padding:50px;
+}
+
+h1{
+margin-bottom:40px;
+}
+
+button{
+font-size:18px;
+padding:15px 25px;
+margin:10px;
+border:none;
+border-radius:10px;
+background:#4a6cff;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#2f4ed8;
+}
+
+#prompt{
+margin-top:40px;
+font-size:22px;
+max-width:600px;
+margin-left:auto;
+margin-right:auto;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>A&N Deployment Prompts</h1>
+
+<button onclick="getPrompt('Short Prompts')">Random Prompt</button>
+<button onclick="getPrompt('Photo Prompts')">Photo Prompt</button>
+<button onclick="getPrompt('Deep Questions')">Deep Question</button>
+
+<div id="prompt"></div>
+
+<script>
+
+const sheetURL = "https://opensheet.elk.sh/18Gxh6zCgx7bWifQCmn_HsxQGkXIMXzp2mKhvikl91OU/Prompts"
+
+async function getPrompt(type){
+
+const response = await fetch(sheetURL)
+const data = await response.json()
+
+const prompts = data
+.map(row => row[type])
+.filter(p => p && p.length > 0)
+
+const randomPrompt = prompts[Math.floor(Math.random()*prompts.length)]
+
+document.getElementById("prompt").innerText = randomPrompt
+
+}
+
+</script>
+
+</body>
+</html>
