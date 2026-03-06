@@ -347,26 +347,6 @@ border:1px solid #ddd;
 .section.active{ display:block; }
 
 /* JOURNAL COMPOSER */
-.modeRow{
-  display:flex;
-  gap:10px;
-  margin:10px 0 12px;
-}
-
-.modeChip{
-  flex:1;
-  padding:10px;
-  border-radius:14px;
-  border:1px solid rgba(0,0,0,.10);
-  background:rgba(0,0,0,.03);
-  font-weight:800;
-  cursor:pointer;
-}
-
-.modeChip.active{
-  background:rgba(0,122,255,.12);
-  border-color:rgba(0,122,255,.25);
-}
 
 .replyPill{
   display:none;
@@ -761,12 +741,10 @@ window.openMemoryLibrary = openMemoryLibrary;
 // Tracks the last "final" prompt shown so we can save it with an answer
 let currentPromptCategory = "";
 let currentPromptText = "";
-let currentPromptSetAt = 0;
 
 function setCurrentPrompt(category, text) {
   currentPromptCategory = category || "";
   currentPromptText = text || "";
-  currentPromptSetAt = Date.now();
   refreshReplyPill();
 }
 
@@ -1133,7 +1111,13 @@ async function toggleHeart(entryId) {
     if (isActive) {
       await updateDoc(entryRef, { [key]: deleteField() });
     } else {
-      await updateDoc(entryRef, { [key]: true });
+      await updateDoc(entryRef, {
+        [key]: {
+          who: whoFromEmail(user.email),
+          email: user.email || "",
+          at: serverTimestamp(),
+        },
+      });
     }
   } catch (err) {
     console.error("Reaction error:", err);
@@ -1148,6 +1132,60 @@ function escapeHtml(str) {
     .replaceAll(">", "&gt;")
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function lovedNamesFromReactions(reactions, currentUser) {
+  const r = reactions || {};
+  const myUid = currentUser ? currentUser.uid : "";
+  const myEmail = currentUser ? (currentUser.email || "") : "";
+
+  const names = [];
+  for (const [uid, val] of Object.entries(r)) {
+    // New format: object with who/email
+    if (val && typeof val === "object") {
+      const who = (val.who || whoFromEmail(val.email) || "").trim();
+      if (who) names.push(who);
+      continue;
+    }
+
+    // Old format: boolean true
+    if (val === true) {
+      if (uid && uid === myUid) {
+        const me = whoFromEmail(myEmail);
+        if (me) names.push(me);
+      } else {
+        // Only two users; if it's not me, it's the partner
+        names.push("Your person");
+      }
+    }
+  }
+
+  // De-dup + prefer stable, romantic ordering
+  const uniq = Array.from(new Set(names));
+  uniq.sort((a, b) => {
+    const order = { "Alex": 0, "Nathalia": 1, "Your person": 2 };
+    return (order[a] ?? 99) - (order[b] ?? 99) || a.localeCompare(b);
+  });
+  return uniq;
+}
+
+function lovedByText(names) {
+  if (!names || names.length === 0) return "";
+  if (names.length === 1) return `Loved by ${names[0]}`;
+  if (names.length === 2) return `Loved by ${names[0]} and ${names[1]}`;
+  return `Loved by ${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+function safeExternalUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw);
+    if (u.protocol === "http:" || u.protocol === "https:") return u.href;
+    return "";
+  } catch (_) {
+    return "";
+  }
 }
 
 function startFeedListener() {
@@ -1168,7 +1206,8 @@ function startFeedListener() {
       });
 
       if (window.__lastSeenTs === 0 && docs.length > 0) {
-        window.__lastSeenTs = entryTimeMs(docs[0]) || Date.now();
+        const firstTs = entryTimeMs(docs[0]);
+        if (firstTs > 0) window.__lastSeenTs = firstTs;
       }
 
       if (docs.length > 0 && auth.currentUser) {
@@ -1199,8 +1238,6 @@ function startFeedListener() {
 
           // Toast only for the newest unseen partner entry
           const newest = unseenPartner[0].d;
-          const newestTs = unseenPartner[0].ts;
-
           const whoName = lastPartnerWho || "Your person";
           const kind = newest.entryType === "promptAnswer" ? "answered a prompt" : "left you a memory";
           showToast(`❤️ ${whoName} ${kind}`, unseenPartner.length > 1 ? `+${unseenPartner.length - 1} more — tap Entries` : "Tap Entries to see it");
@@ -1293,7 +1330,10 @@ function startFeedListener() {
             ${entry.text ? `<div class="answerBlock">${escapeHtml(entry.text)}</div>` : ``}
 
             <div class="entryActions">
-              ${entry.link ? `<a class="linkButton" href="${entry.link}" target="_blank" rel="noopener noreferrer">Open link</a>` : ``}
+              ${(() => {
+                const safeLink = safeExternalUrl(entry.link);
+                return safeLink ? `<a class="linkButton" href="${safeLink}" target="_blank" rel="noopener noreferrer">Open link</a>` : ``;
+              })()}
             </div>
 
             ${entry.imageUrl ? `<img class="entryImage" src="${entry.imageUrl}" alt="Memory photo">` : ``}
@@ -1311,9 +1351,8 @@ function startFeedListener() {
               >❤️ Love</button>
 
               <div class="heartCount">${(() => {
-                const r = entry.reactions || {};
-                const n = Object.keys(r).length;
-                return n > 0 ? `${n} ${n === 1 ? "heart" : "hearts"}` : "";
+                const names = lovedNamesFromReactions(entry.reactions, auth.currentUser);
+                return lovedByText(names);
               })()}</div>
             </div>
           `;
@@ -1507,6 +1546,10 @@ onAuthStateChanged(auth, (user) => {
     startFeedListener();
     updateEntriesBadge();
   } else {
+    unseenFromPartner = 0;
+    lastPartnerWho = "";
+    window.__lastSeenTs = 0;
+    updateEntriesBadge();
     if (unsubscribeFeed) unsubscribeFeed();
     unsubscribeFeed = null;
     document.getElementById("memoryFeed").innerHTML = "";
