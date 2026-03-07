@@ -464,6 +464,56 @@ border:1px solid #ddd;
   box-shadow:0 10px 22px rgba(0,0,0,.12);
 }
 
+.uploadOverlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(10px);
+  z-index:10000;
+}
+
+.uploadCard{
+  min-width:220px;
+  max-width:300px;
+  padding:22px 20px;
+  border-radius:20px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 18px 45px rgba(0,0,0,.20);
+  border:1px solid rgba(0,0,0,.06);
+  text-align:center;
+}
+
+.uploadSpinner{
+  width:34px;
+  height:34px;
+  margin:0 auto 12px;
+  border-radius:50%;
+  border:3px solid rgba(0,0,0,.12);
+  border-top:3px solid #007AFF;
+  animation:spin 1s linear infinite;
+}
+
+.uploadTitle{
+  font-size:16px;
+  font-weight:800;
+  color:#111;
+}
+
+.uploadSub{
+  margin-top:6px;
+  font-size:13px;
+  font-weight:700;
+  color:rgba(0,0,0,.58);
+}
+
+button.isBusy{
+  opacity:.65;
+  pointer-events:none;
+}
+
 </style>
 </head>
 
@@ -529,7 +579,7 @@ A&N Deployment Prompts
     </div>
 
 
-    <button class="saveMemory" onclick="savePromptAnswer()">💾 Save Prompt Answer</button>
+    <button class="saveMemory" id="savePromptBtn" onclick="savePromptAnswer()">💾 Save Prompt Answer</button>
   </div>
 </div>
 
@@ -592,7 +642,7 @@ A&N Deployment Prompts
     </div>
 
 
-    <button class="saveMemory" onclick="saveMemory()">💾 Save Memory</button>
+    <button class="saveMemory" id="saveMemoryBtn" onclick="saveMemory()">💾 Save Memory</button>
   </div>
 </div>
 
@@ -607,6 +657,14 @@ A&N Deployment Prompts
 </div>
 
 <div id="toast" class="toast" style="display:none;" role="status" aria-live="polite"></div>
+
+<div id="uploadOverlay" class="uploadOverlay" aria-live="polite" aria-hidden="true">
+  <div class="uploadCard">
+    <div class="uploadSpinner"></div>
+    <div class="uploadTitle" id="uploadTitle">Uploading…</div>
+    <div class="uploadSub" id="uploadSub">Please wait</div>
+  </div>
+</div>
 
 
 <script type="module">
@@ -727,6 +785,22 @@ let lastPartnerWho = "";
 let toastTimer = null;
 window.__lastSeenTs = 0;
 
+function lastSeenStorageKey(email) {
+  return `an_lastSeenTs_${String(email || "").toLowerCase().trim()}`;
+}
+
+function loadLastSeenTs(email) {
+  const raw = localStorage.getItem(lastSeenStorageKey(email));
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+function saveLastSeenTs(email, ts) {
+  const n = Number(ts) || 0;
+  localStorage.setItem(lastSeenStorageKey(email), String(n));
+  window.__lastSeenTs = n;
+}
+
 // Expose functions for inline onclick handlers
 window.signIn = signIn;
 window.signOutUser = signOutUser;
@@ -779,6 +853,13 @@ function showTab(tab) {
     unseenFromPartner = 0;
     lastPartnerWho = "";
     updateEntriesBadge();
+
+    // Persist a provisional "seen" time immediately; the feed listener will refine it
+    // to the newest actual partner entry timestamp once it runs.
+    const u = auth.currentUser;
+    if (u && ALLOWED_EMAILS.has(u.email || "")) {
+      saveLastSeenTs(u.email, Math.max(window.__lastSeenTs || 0, Date.now()));
+    }
   }
 }
 
@@ -805,6 +886,32 @@ function showToast(title, subtitle = "") {
 
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
+}
+
+let isUploading = false;
+
+function setUploadingState(isOn, title = "Uploading…", sub = "Please wait") {
+  isUploading = isOn;
+
+  const overlay = document.getElementById("uploadOverlay");
+  const titleEl = document.getElementById("uploadTitle");
+  const subEl = document.getElementById("uploadSub");
+  const promptBtn = document.getElementById("savePromptBtn");
+  const memoryBtn = document.getElementById("saveMemoryBtn");
+
+  if (titleEl) titleEl.textContent = title;
+  if (subEl) subEl.textContent = sub;
+
+  if (overlay) {
+    overlay.style.display = isOn ? "flex" : "none";
+    overlay.setAttribute("aria-hidden", isOn ? "false" : "true");
+  }
+
+  if (promptBtn) promptBtn.classList.toggle("isBusy", isOn);
+  if (memoryBtn) memoryBtn.classList.toggle("isBusy", isOn);
+
+  if (promptBtn) promptBtn.disabled = isOn;
+  if (memoryBtn) memoryBtn.disabled = isOn;
 }
 
 function refreshReplyPill() {
@@ -1205,9 +1312,19 @@ function startFeedListener() {
         docs.push({ id: d.id, ...d.data() });
       });
 
-      if (window.__lastSeenTs === 0 && docs.length > 0) {
-        const firstTs = entryTimeMs(docs[0]);
-        if (firstTs > 0) window.__lastSeenTs = firstTs;
+      const currentUserEmail = auth.currentUser?.email || "";
+      if (window.__lastSeenTs === 0 && currentUserEmail) {
+        const storedSeen = loadLastSeenTs(currentUserEmail);
+        if (storedSeen > 0) {
+          window.__lastSeenTs = storedSeen;
+        } else if (docs.length > 0) {
+          // First-ever session for this user: start from current snapshot so old entries
+          // do not immediately count as “new”.
+          const firstTs = entryTimeMs(docs[0]);
+          if (firstTs > 0) {
+            saveLastSeenTs(currentUserEmail, firstTs);
+          }
+        }
       }
 
       if (docs.length > 0 && auth.currentUser) {
@@ -1235,6 +1352,7 @@ function startFeedListener() {
           unseenFromPartner = unseenPartner.length;
           lastPartnerWho = (unseenPartner[0].d.who || "").trim();
           updateEntriesBadge();
+          console.log("A&N unseen partner entries:", unseenPartner.length, unseenPartner.map(x => ({ who: x.d.who, ts: x.ts, entryType: x.d.entryType })));
 
           // Toast only for the newest unseen partner entry
           const newest = unseenPartner[0].d;
@@ -1252,7 +1370,13 @@ function startFeedListener() {
           // When viewing Entries, mark everything up to the newest partner entry as seen
           if (unseenPartner.length > 0) {
             const maxTs = unseenPartner[0].ts;
-            window.__lastSeenTs = Math.max(window.__lastSeenTs, maxTs);
+            const nextSeen = Math.max(window.__lastSeenTs, maxTs);
+            const u = auth.currentUser;
+            if (u && ALLOWED_EMAILS.has(u.email || "")) {
+              saveLastSeenTs(u.email, nextSeen);
+            } else {
+              window.__lastSeenTs = nextSeen;
+            }
           }
 
           // Clear the badge while on Entries
@@ -1369,6 +1493,7 @@ function startFeedListener() {
 }
 
 async function savePromptAnswer() {
+  if (isUploading) return;
   const user = auth.currentUser;
   if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
     alert("Sign in first.");
@@ -1394,11 +1519,14 @@ async function savePromptAnswer() {
     return;
   }
 
+  setUploadingState(true, "Uploading your answer…", "Adding it to your journal");
+
   // Allow iPhone photos; compress under 5 MB before upload.
   // Still guard against truly enormous files that could hang the browser.
   if (imageFile) {
     const file = imageFile;
     if (file.size > 40 * 1024 * 1024) {
+      setUploadingState(false);
       alert("That photo is extremely large. Try a smaller one.");
       return;
     }
@@ -1411,6 +1539,7 @@ async function savePromptAnswer() {
     try {
       const dataUrl = await compressImageUnderBytes(file, 5 * 1024 * 1024);
       if (dataUrlBytes(dataUrl) > 5 * 1024 * 1024) {
+        setUploadingState(false);
         alert("Could not compress this photo under 5 MB. Try cropping it or choosing a different photo.");
         return;
       }
@@ -1419,6 +1548,7 @@ async function savePromptAnswer() {
       await uploadString(imgRef, dataUrl, "data_url");
       imageUrl = await getDownloadURL(imgRef);
     } catch (err) {
+      setUploadingState(false);
       console.error("Image upload error:", err);
       alert("Photo upload failed: " + (err?.message || "unknown error"));
       return;
@@ -1449,13 +1579,16 @@ async function savePromptAnswer() {
     setCurrentPrompt("", "");
 
     showTab("entries");
+    setUploadingState(false);
   } catch (err) {
+    setUploadingState(false);
     console.error("Save entry error:", err);
     alert("Save failed: " + (err?.message || "unknown error"));
   }
 }
 
 async function saveMemory() {
+  if (isUploading) return;
   const user = auth.currentUser;
   if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
     alert("Sign in first.");
@@ -1475,11 +1608,14 @@ async function saveMemory() {
     return;
   }
 
+  setUploadingState(true, "Uploading your memory…", "Adding it to your journal");
+
   // Allow iPhone photos; compress under 5 MB before upload.
   // Still guard against truly enormous files that could hang the browser.
   if (imageFile) {
     const file = imageFile;
     if (file.size > 40 * 1024 * 1024) {
+      setUploadingState(false);
       alert("That photo is extremely large. Try a smaller one.");
       return;
     }
@@ -1493,6 +1629,7 @@ async function saveMemory() {
     try {
       const dataUrl = await compressImageUnderBytes(file, 5 * 1024 * 1024);
       if (dataUrlBytes(dataUrl) > 5 * 1024 * 1024) {
+        setUploadingState(false);
         alert("Could not compress this photo under 5 MB. Try cropping it or choosing a different photo.");
         return;
       }
@@ -1502,6 +1639,7 @@ async function saveMemory() {
       await uploadString(imgRef, dataUrl, "data_url");
       imageUrl = await getDownloadURL(imgRef);
     } catch (err) {
+      setUploadingState(false);
       console.error("Image upload error:", err);
       alert("Photo upload failed: " + (err?.message || "unknown error"));
       return;
@@ -1527,7 +1665,9 @@ async function saveMemory() {
     document.getElementById("memoryLink").value = "";
     if (imageInputLib) imageInputLib.value = "";
     setPhotoStatus("memory", null);
+    setUploadingState(false);
   } catch (err) {
+    setUploadingState(false);
     console.error("Save entry error:", err);
     alert("Save failed: " + (err?.message || "unknown error"));
   }
@@ -1543,6 +1683,7 @@ onAuthStateChanged(auth, (user) => {
   const isAllowed = !!user && ALLOWED_EMAILS.has(user.email || "");
 
   if (isAllowed) {
+    window.__lastSeenTs = loadLastSeenTs(user.email || "");
     startFeedListener();
     updateEntriesBadge();
   } else {
