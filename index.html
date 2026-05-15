@@ -157,39 +157,40 @@ A&N Deployment Prompts
       Our timeline — one tiny moment at a time.
     </div>
   </div>
-  <div class="entriesToolbarDock collapsed" id="entriesToolbarDock">
-    <div class="entriesControls" id="entriesControls">
-      <input id="entrySearch" class="entrySearch" type="search" placeholder="Search history">
-      <div class="entriesControlGrid">
-        <select id="entryPersonFilter" aria-label="Filter entries by person">
-          <option value="">Everyone</option>
-          <option value="Alex">Alex</option>
-          <option value="Nathalia">Nathalia</option>
-        </select>
-        <select id="entryKindFilter" aria-label="Filter entries by type">
-          <option value="">All types</option>
-          <option value="prompt">Prompts</option>
-          <option value="memory">Memories</option>
-          <option value="photo">Photos</option>
-          <option value="link">Links</option>
-          <option value="loved">Loved</option>
-        </select>
-        <select id="entryDateJump" aria-label="Jump to entry date">
-          <option value="">Jump to date</option>
-        </select>
-      </div>
-      <div class="entriesQuickRow">
-        <button class="entryToolBtn" id="loadMoreEntriesBtn" type="button">Older</button>
-      </div>
-      <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
+  <div class="entryFilterBar" id="entryFilterBar">
+    <input id="entrySearch" class="entrySearch" type="search" placeholder="Search history">
+    <div class="entriesControlGrid">
+      <select id="entryPersonFilter" aria-label="Filter entries by person">
+        <option value="">Everyone</option>
+        <option value="Alex">Alex</option>
+        <option value="Nathalia">Nathalia</option>
+      </select>
+      <select id="entryKindFilter" aria-label="Filter entries by type">
+        <option value="">All types</option>
+        <option value="prompt">Prompts</option>
+        <option value="memory">Memories</option>
+        <option value="photo">Photos</option>
+        <option value="link">Links</option>
+        <option value="loved">Loved</option>
+      </select>
+      <select id="entryDateJump" aria-label="Jump to entry date">
+        <option value="">Jump to date</option>
+      </select>
     </div>
-    <div class="entriesSideRail" aria-label="Entry navigation">
-      <button class="entryRailBtn" id="scrollEntriesTopBtn" type="button">Top</button>
-      <button class="entryRailBtn" id="entryPrevDayBtn" type="button">Prev</button>
-      <button class="entryRailBtn railPrimary" id="toggleEntriesToolbarBtn" type="button" aria-expanded="false" aria-controls="entriesControls">Find</button>
-      <button class="entryRailBtn" id="entryNextDayBtn" type="button">Next</button>
-      <button class="entryRailBtn" id="scrollEntriesBottomBtn" type="button">End</button>
+    <div class="entriesQuickRow">
+      <button class="entryToolBtn" id="loadMoreEntriesBtn" type="button">Older</button>
     </div>
+    <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
+  </div>
+  <div class="entryScrollRail" id="entryScrollRail" aria-label="Memory scroll">
+    <button class="entryScrubBtn" id="scrollEntriesTopBtn" type="button" aria-label="Jump to latest entries">Top</button>
+    <button class="entryScrubBtn" id="entryPrevDayBtn" type="button" aria-label="Previous day">Prev</button>
+    <div class="entryScrubberWrap">
+      <input id="entryScrubber" class="entryScrubber" type="range" min="0" max="0" value="0" aria-label="Scroll through entry dates">
+    </div>
+    <button class="entryScrubBtn" id="entryNextDayBtn" type="button" aria-label="Next day">Next</button>
+    <button class="entryScrubBtn" id="scrollEntriesBottomBtn" type="button" aria-label="Jump to oldest entries">End</button>
+    <div class="entryScrubLabel" id="entryScrubLabel">Latest</div>
   </div>
   <div id="memoryFeed"></div>
 </div>

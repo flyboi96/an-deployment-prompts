@@ -524,8 +524,9 @@ MEMORY VAULT (Firestore + Storage)
 let unsubscribeFeed = null;
 let entryFetchLimit = 75;
 let latestEntryDocs = [];
+let currentEntryGroups = [];
 let entryControlsReady = false;
-const ENTRY_TOOLBAR_COLLAPSED_KEY = "an_entriesSidePanelCollapsed";
+let entryScrubberFrame = null;
 
 async function toggleHeart(entryId) {
   const user = auth.currentUser;
@@ -704,6 +705,7 @@ function initEntryControls() {
   const person = document.getElementById("entryPersonFilter");
   const kind = document.getElementById("entryKindFilter");
   const dateJump = document.getElementById("entryDateJump");
+  const scrubber = document.getElementById("entryScrubber");
 
   const rerender = () => renderEntryFeed();
 
@@ -715,33 +717,11 @@ function initEntryControls() {
       if (dateJump.value) jumpToEntryDay(dateJump.value);
     });
   }
-
-  entryControlsReady = true;
-}
-
-function loadEntryToolbarCollapsed() {
-  const stored = localStorage.getItem(ENTRY_TOOLBAR_COLLAPSED_KEY);
-  return stored === null ? true : stored === "true";
-}
-
-function setEntryToolbarCollapsed(isCollapsed) {
-  const dock = document.getElementById("entriesToolbarDock");
-  const toggle = document.getElementById("toggleEntriesToolbarBtn");
-
-  if (dock) dock.classList.toggle("collapsed", isCollapsed);
-
-  if (toggle) {
-    toggle.textContent = isCollapsed ? "Find" : "Hide";
-    toggle.setAttribute("aria-expanded", String(!isCollapsed));
-    toggle.setAttribute("aria-label", isCollapsed ? "Show history controls" : "Hide history controls");
+  if (scrubber) {
+    scrubber.addEventListener("input", () => jumpToEntryIndex(Number(scrubber.value)));
   }
 
-  localStorage.setItem(ENTRY_TOOLBAR_COLLAPSED_KEY, String(isCollapsed));
-}
-
-function toggleEntryToolbar() {
-  const dock = document.getElementById("entriesToolbarDock");
-  setEntryToolbarCollapsed(!dock?.classList.contains("collapsed"));
+  entryControlsReady = true;
 }
 
 function updateEntryControls(groups, visibleCount, loadedCount) {
@@ -784,17 +764,26 @@ function updateEntryControls(groups, visibleCount, loadedCount) {
     loadBtn.disabled = !canLoadMore;
     loadBtn.textContent = canLoadMore ? "Older" : "Done";
   }
+
+  updateEntryScrubber(groups, 0);
 }
 
 function scrollEntriesTop() {
-  const section = document.getElementById("sectionEntries");
-  if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (currentEntryGroups.length > 0) {
+    jumpToEntryIndex(0);
+    return;
+  }
+
+  document.getElementById("sectionEntries")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function scrollEntriesBottom() {
-  const feed = document.getElementById("memoryFeed");
-  const last = feed ? feed.lastElementChild : null;
-  if (last) last.scrollIntoView({ behavior: "smooth", block: "end" });
+  if (currentEntryGroups.length > 0) {
+    jumpToEntryIndex(currentEntryGroups.length - 1);
+    return;
+  }
+
+  document.getElementById("memoryFeed")?.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "end" });
 }
 
 function visibleEntryDayHeaders() {
@@ -819,13 +808,73 @@ function scrollEntryDay(offset) {
   if (headers.length === 0) return;
 
   const currentIndex = currentEntryDayIndex(headers);
-  const nextIndex = Math.max(0, Math.min(headers.length - 1, currentIndex + offset));
-  headers[nextIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+  jumpToEntryIndex(currentIndex + offset);
+}
+
+function updateEntryScrubber(groups, index) {
+  const scrubber = document.getElementById("entryScrubber");
+  const label = document.getElementById("entryScrubLabel");
+  const prev = document.getElementById("entryPrevDayBtn");
+  const next = document.getElementById("entryNextDayBtn");
+  const top = document.getElementById("scrollEntriesTopBtn");
+  const bottom = document.getElementById("scrollEntriesBottomBtn");
+  const hasGroups = groups.length > 0;
+  const clamped = hasGroups ? Math.max(0, Math.min(groups.length - 1, index)) : 0;
+
+  if (scrubber) {
+    scrubber.min = "0";
+    scrubber.max = String(Math.max(groups.length - 1, 0));
+    scrubber.value = String(clamped);
+    scrubber.disabled = groups.length <= 1;
+  }
+
+  if (label) {
+    label.textContent = hasGroups ? `${clamped + 1}/${groups.length}` : "0/0";
+  }
+
+  for (const button of [prev, next, top, bottom]) {
+    if (button) button.disabled = !hasGroups;
+  }
+}
+
+function syncEntryScrubberToScroll() {
+  const headers = visibleEntryDayHeaders();
+  if (headers.length === 0) {
+    updateEntryScrubber(currentEntryGroups, 0);
+    return;
+  }
+
+  updateEntryScrubber(currentEntryGroups, currentEntryDayIndex(headers));
+}
+
+function scheduleEntryScrubberSync() {
+  if (activeTab !== "entries" || entryScrubberFrame) return;
+  entryScrubberFrame = requestAnimationFrame(() => {
+    entryScrubberFrame = null;
+    syncEntryScrubberToScroll();
+  });
+}
+
+function jumpToEntryIndex(index) {
+  if (currentEntryGroups.length === 0) return;
+
+  const clamped = Math.max(0, Math.min(currentEntryGroups.length - 1, index));
+  const target = document.getElementById(`entry-day-${currentEntryGroups[clamped].key}`);
+
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  updateEntryScrubber(currentEntryGroups, clamped);
 }
 
 function jumpToEntryDay(dayKey) {
   const el = document.getElementById(`entry-day-${dayKey}`);
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!el) return;
+
+  const index = currentEntryGroups.findIndex((group) => group.key === dayKey);
+  if (index >= 0) updateEntryScrubber(currentEntryGroups, index);
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function loadMoreEntries() {
@@ -915,6 +964,7 @@ function renderEntryFeed() {
   }
 
   const sortedGroups = buildEntryGroups(filteredDocs);
+  currentEntryGroups = sortedGroups;
   updateEntryControls(sortedGroups, filteredDocs.length, latestEntryDocs.length);
 
   if (sortedGroups.length === 0) {
@@ -938,6 +988,8 @@ function renderEntryFeed() {
       feed.appendChild(renderEntryCard(entry, timeLabelForEntry));
     }
   }
+
+  syncEntryScrubberToScroll();
 }
 
 function startFeedListener() {
@@ -1218,7 +1270,6 @@ function setupEventListeners() {
     entryPrevDayBtn: () => scrollEntryDay(-1),
     entryNextDayBtn: () => scrollEntryDay(1),
     loadMoreEntriesBtn: loadMoreEntries,
-    toggleEntriesToolbarBtn: toggleEntryToolbar,
   };
 
   for (const [id, handler] of Object.entries(clickHandlers)) {
@@ -1235,7 +1286,7 @@ function setupEventListeners() {
     });
   }
 
-  setEntryToolbarCollapsed(loadEntryToolbarCollapsed());
+  window.addEventListener("scroll", scheduleEntryScrubberSync, { passive: true });
 }
 
 onAuthStateChanged(auth, (user) => {
