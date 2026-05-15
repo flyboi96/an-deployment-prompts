@@ -525,7 +525,7 @@ let unsubscribeFeed = null;
 let entryFetchLimit = 75;
 let latestEntryDocs = [];
 let entryControlsReady = false;
-const ENTRY_TOOLBAR_COLLAPSED_KEY = "an_entriesToolbarCollapsed";
+const ENTRY_TOOLBAR_COLLAPSED_KEY = "an_entriesSidePanelCollapsed";
 
 async function toggleHeart(entryId) {
   const user = auth.currentUser;
@@ -720,7 +720,8 @@ function initEntryControls() {
 }
 
 function loadEntryToolbarCollapsed() {
-  return localStorage.getItem(ENTRY_TOOLBAR_COLLAPSED_KEY) === "true";
+  const stored = localStorage.getItem(ENTRY_TOOLBAR_COLLAPSED_KEY);
+  return stored === null ? true : stored === "true";
 }
 
 function setEntryToolbarCollapsed(isCollapsed) {
@@ -730,7 +731,7 @@ function setEntryToolbarCollapsed(isCollapsed) {
   if (dock) dock.classList.toggle("collapsed", isCollapsed);
 
   if (toggle) {
-    toggle.textContent = isCollapsed ? "History" : "Hide";
+    toggle.textContent = isCollapsed ? "Find" : "Hide";
     toggle.setAttribute("aria-expanded", String(!isCollapsed));
     toggle.setAttribute("aria-label", isCollapsed ? "Show history controls" : "Hide history controls");
   }
@@ -794,6 +795,32 @@ function scrollEntriesBottom() {
   const feed = document.getElementById("memoryFeed");
   const last = feed ? feed.lastElementChild : null;
   if (last) last.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function visibleEntryDayHeaders() {
+  return Array.from(document.querySelectorAll("#memoryFeed .dayHeader[id^='entry-day-']"));
+}
+
+function currentEntryDayIndex(headers) {
+  const anchorY = Math.max(96, window.innerHeight * 0.28);
+  let currentIndex = 0;
+
+  headers.forEach((header, index) => {
+    if (header.getBoundingClientRect().top <= anchorY) {
+      currentIndex = index;
+    }
+  });
+
+  return currentIndex;
+}
+
+function scrollEntryDay(offset) {
+  const headers = visibleEntryDayHeaders();
+  if (headers.length === 0) return;
+
+  const currentIndex = currentEntryDayIndex(headers);
+  const nextIndex = Math.max(0, Math.min(headers.length - 1, currentIndex + offset));
+  headers[nextIndex].scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function jumpToEntryDay(dayKey) {
@@ -1188,6 +1215,8 @@ function setupEventListeners() {
     signOutBtn: signOutUser,
     scrollEntriesTopBtn: scrollEntriesTop,
     scrollEntriesBottomBtn: scrollEntriesBottom,
+    entryPrevDayBtn: () => scrollEntryDay(-1),
+    entryNextDayBtn: () => scrollEntryDay(1),
     loadMoreEntriesBtn: loadMoreEntries,
     toggleEntriesToolbarBtn: toggleEntryToolbar,
   };

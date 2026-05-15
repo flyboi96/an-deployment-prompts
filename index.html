@@ -157,7 +157,7 @@ A&N Deployment Prompts
       Our timeline — one tiny moment at a time.
     </div>
   </div>
-  <div class="entriesToolbarDock" id="entriesToolbarDock">
+  <div class="entriesToolbarDock collapsed" id="entriesToolbarDock">
     <div class="entriesControls" id="entriesControls">
       <input id="entrySearch" class="entrySearch" type="search" placeholder="Search history">
       <div class="entriesControlGrid">
@@ -179,13 +179,17 @@ A&N Deployment Prompts
         </select>
       </div>
       <div class="entriesQuickRow">
-        <button class="entryToolBtn" id="scrollEntriesTopBtn" type="button">Latest</button>
-        <button class="entryToolBtn" id="scrollEntriesBottomBtn" type="button">Oldest</button>
         <button class="entryToolBtn" id="loadMoreEntriesBtn" type="button">Older</button>
       </div>
       <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
     </div>
-    <button class="entriesToolbarToggle" id="toggleEntriesToolbarBtn" type="button" aria-expanded="true" aria-controls="entriesControls">Hide</button>
+    <div class="entriesSideRail" aria-label="Entry navigation">
+      <button class="entryRailBtn" id="scrollEntriesTopBtn" type="button">Top</button>
+      <button class="entryRailBtn" id="entryPrevDayBtn" type="button">Prev</button>
+      <button class="entryRailBtn railPrimary" id="toggleEntriesToolbarBtn" type="button" aria-expanded="false" aria-controls="entriesControls">Find</button>
+      <button class="entryRailBtn" id="entryNextDayBtn" type="button">Next</button>
+      <button class="entryRailBtn" id="scrollEntriesBottomBtn" type="button">End</button>
+    </div>
   </div>
   <div id="memoryFeed"></div>
 </div>
