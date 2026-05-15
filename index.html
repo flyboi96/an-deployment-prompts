@@ -157,32 +157,35 @@ A&N Deployment Prompts
       Our timeline — one tiny moment at a time.
     </div>
   </div>
-  <div class="entriesControls" id="entriesControls">
-    <input id="entrySearch" class="entrySearch" type="search" placeholder="Search history">
-    <div class="entriesControlGrid">
-      <select id="entryPersonFilter" aria-label="Filter entries by person">
-        <option value="">Everyone</option>
-        <option value="Alex">Alex</option>
-        <option value="Nathalia">Nathalia</option>
-      </select>
-      <select id="entryKindFilter" aria-label="Filter entries by type">
-        <option value="">All types</option>
-        <option value="prompt">Prompts</option>
-        <option value="memory">Memories</option>
-        <option value="photo">Photos</option>
-        <option value="link">Links</option>
-        <option value="loved">Loved</option>
-      </select>
-      <select id="entryDateJump" aria-label="Jump to entry date">
-        <option value="">Jump to date</option>
-      </select>
+  <div class="entriesToolbarDock" id="entriesToolbarDock">
+    <div class="entriesControls" id="entriesControls">
+      <input id="entrySearch" class="entrySearch" type="search" placeholder="Search history">
+      <div class="entriesControlGrid">
+        <select id="entryPersonFilter" aria-label="Filter entries by person">
+          <option value="">Everyone</option>
+          <option value="Alex">Alex</option>
+          <option value="Nathalia">Nathalia</option>
+        </select>
+        <select id="entryKindFilter" aria-label="Filter entries by type">
+          <option value="">All types</option>
+          <option value="prompt">Prompts</option>
+          <option value="memory">Memories</option>
+          <option value="photo">Photos</option>
+          <option value="link">Links</option>
+          <option value="loved">Loved</option>
+        </select>
+        <select id="entryDateJump" aria-label="Jump to entry date">
+          <option value="">Jump to date</option>
+        </select>
+      </div>
+      <div class="entriesQuickRow">
+        <button class="entryToolBtn" id="scrollEntriesTopBtn" type="button">Latest</button>
+        <button class="entryToolBtn" id="scrollEntriesBottomBtn" type="button">Oldest</button>
+        <button class="entryToolBtn" id="loadMoreEntriesBtn" type="button">Older</button>
+      </div>
+      <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
     </div>
-    <div class="entriesQuickRow">
-      <button class="entryToolBtn" id="scrollEntriesTopBtn" type="button">Latest</button>
-      <button class="entryToolBtn" id="scrollEntriesBottomBtn" type="button">Oldest</button>
-      <button class="entryToolBtn" id="loadMoreEntriesBtn" type="button">Older</button>
-    </div>
-    <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
+    <button class="entriesToolbarToggle" id="toggleEntriesToolbarBtn" type="button" aria-expanded="true" aria-controls="entriesControls">Hide</button>
   </div>
   <div id="memoryFeed"></div>
 </div>

@@ -525,6 +525,7 @@ let unsubscribeFeed = null;
 let entryFetchLimit = 75;
 let latestEntryDocs = [];
 let entryControlsReady = false;
+const ENTRY_TOOLBAR_COLLAPSED_KEY = "an_entriesToolbarCollapsed";
 
 async function toggleHeart(entryId) {
   const user = auth.currentUser;
@@ -716,6 +717,30 @@ function initEntryControls() {
   }
 
   entryControlsReady = true;
+}
+
+function loadEntryToolbarCollapsed() {
+  return localStorage.getItem(ENTRY_TOOLBAR_COLLAPSED_KEY) === "true";
+}
+
+function setEntryToolbarCollapsed(isCollapsed) {
+  const dock = document.getElementById("entriesToolbarDock");
+  const toggle = document.getElementById("toggleEntriesToolbarBtn");
+
+  if (dock) dock.classList.toggle("collapsed", isCollapsed);
+
+  if (toggle) {
+    toggle.textContent = isCollapsed ? "History" : "Hide";
+    toggle.setAttribute("aria-expanded", String(!isCollapsed));
+    toggle.setAttribute("aria-label", isCollapsed ? "Show history controls" : "Hide history controls");
+  }
+
+  localStorage.setItem(ENTRY_TOOLBAR_COLLAPSED_KEY, String(isCollapsed));
+}
+
+function toggleEntryToolbar() {
+  const dock = document.getElementById("entriesToolbarDock");
+  setEntryToolbarCollapsed(!dock?.classList.contains("collapsed"));
 }
 
 function updateEntryControls(groups, visibleCount, loadedCount) {
@@ -1164,6 +1189,7 @@ function setupEventListeners() {
     scrollEntriesTopBtn: scrollEntriesTop,
     scrollEntriesBottomBtn: scrollEntriesBottom,
     loadMoreEntriesBtn: loadMoreEntries,
+    toggleEntriesToolbarBtn: toggleEntryToolbar,
   };
 
   for (const [id, handler] of Object.entries(clickHandlers)) {
@@ -1179,6 +1205,8 @@ function setupEventListeners() {
       toggleHeart(button.dataset.entryId);
     });
   }
+
+  setEntryToolbarCollapsed(loadEntryToolbarCollapsed());
 }
 
 onAuthStateChanged(auth, (user) => {
