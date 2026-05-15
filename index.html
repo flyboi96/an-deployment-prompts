@@ -177,24 +177,10 @@ A&N Deployment Prompts
         <option value="">Jump to date</option>
       </select>
     </div>
-    <div class="entriesQuickRow">
-      <button class="entryToolBtn" id="loadMoreEntriesBtn" type="button">Older</button>
-    </div>
     <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
   </div>
-  <div class="entryBottomNav" id="entryBottomNav" aria-label="Memory navigation">
-    <div class="entryNavButtons">
-      <button class="entryNavBtn" id="scrollEntriesTopBtn" type="button" aria-label="Jump to latest entries">Top</button>
-      <button class="entryNavBtn" id="entryPrevDayBtn" type="button" aria-label="Previous day">Prev</button>
-      <button class="entryNavBtn" id="entryNextDayBtn" type="button" aria-label="Next day">Next</button>
-      <button class="entryNavBtn" id="scrollEntriesBottomBtn" type="button" aria-label="Jump to oldest entries">End</button>
-    </div>
-    <div class="entryScrubberRow">
-      <input id="entryScrubber" class="entryScrubber" type="range" min="0" max="0" value="0" aria-label="Scroll through entry dates">
-      <div class="entryScrubLabel" id="entryScrubLabel">0/0</div>
-    </div>
-  </div>
   <div id="memoryFeed"></div>
+  <button class="entryReturnTop" id="entryReturnTopBtn" type="button" aria-label="Return to top">↑</button>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

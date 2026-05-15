@@ -17,7 +17,6 @@ import {
   serverTimestamp,
   query,
   orderBy,
-  limit,
   onSnapshot,
   doc,
   updateDoc,
@@ -84,6 +83,27 @@ function prettyDayLabelFromMs(ms, todayKey, yesterdayKey) {
     weekday: "short",
     month: "short",
     day: "numeric",
+  }).format(new Date(ms));
+}
+
+function dateJumpLabelFromMs(ms, todayKey, yesterdayKey) {
+  const date = new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(ms));
+  const key = dayKeyForMs(ms);
+
+  if (key === todayKey) return `Today - ${date}`;
+  if (key === yesterdayKey) return `Yesterday - ${date}`;
+
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(new Date(ms));
 }
 
@@ -522,11 +542,8 @@ MEMORY VAULT (Firestore + Storage)
 ============================ */
 
 let unsubscribeFeed = null;
-let entryFetchLimit = 75;
 let latestEntryDocs = [];
-let currentEntryGroups = [];
 let entryControlsReady = false;
-let entryScrubberFrame = null;
 
 async function toggleHeart(entryId) {
   const user = auth.currentUser;
@@ -705,7 +722,6 @@ function initEntryControls() {
   const person = document.getElementById("entryPersonFilter");
   const kind = document.getElementById("entryKindFilter");
   const dateJump = document.getElementById("entryDateJump");
-  const scrubber = document.getElementById("entryScrubber");
 
   const rerender = () => renderEntryFeed();
 
@@ -717,9 +733,6 @@ function initEntryControls() {
       if (dateJump.value) jumpToEntryDay(dateJump.value);
     });
   }
-  if (scrubber) {
-    scrubber.addEventListener("input", () => jumpToEntryIndex(Number(scrubber.value)));
-  }
 
   entryControlsReady = true;
 }
@@ -727,7 +740,6 @@ function initEntryControls() {
 function updateEntryControls(groups, visibleCount, loadedCount) {
   const dateJump = document.getElementById("entryDateJump");
   const summary = document.getElementById("entryFeedSummary");
-  const loadBtn = document.getElementById("loadMoreEntriesBtn");
 
   if (dateJump) {
     const selected = dateJump.value;
@@ -739,7 +751,7 @@ function updateEntryControls(groups, visibleCount, loadedCount) {
     for (const g of groups) {
       const option = document.createElement("option");
       option.value = g.key;
-      option.textContent = `${prettyDayLabelFromMs(g.ms || 0, todayKey, yesterdayKey)} (${g.items.length})`;
+      option.textContent = `${dateJumpLabelFromMs(g.ms || 0, todayKey, yesterdayKey)} (${g.items.length})`;
       dateJump.appendChild(option);
     }
 
@@ -758,128 +770,17 @@ function updateEntryControls(groups, visibleCount, loadedCount) {
       summary.textContent = `${visibleCount} of ${loadedCount} entries shown`;
     }
   }
-
-  if (loadBtn) {
-    const canLoadMore = loadedCount >= entryFetchLimit;
-    loadBtn.disabled = !canLoadMore;
-    loadBtn.textContent = canLoadMore ? "Older" : "Done";
-  }
-
-  updateEntryScrubber(groups, 0);
 }
 
 function scrollEntriesTop() {
-  if (currentEntryGroups.length > 0) {
-    jumpToEntryIndex(0);
-    return;
-  }
-
   document.getElementById("sectionEntries")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function scrollEntriesBottom() {
-  if (currentEntryGroups.length > 0) {
-    jumpToEntryIndex(currentEntryGroups.length - 1);
-    return;
-  }
-
-  document.getElementById("memoryFeed")?.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "end" });
-}
-
-function visibleEntryDayHeaders() {
-  return Array.from(document.querySelectorAll("#memoryFeed .dayHeader[id^='entry-day-']"));
-}
-
-function currentEntryDayIndex(headers) {
-  const anchorY = Math.max(96, window.innerHeight * 0.28);
-  let currentIndex = 0;
-
-  headers.forEach((header, index) => {
-    if (header.getBoundingClientRect().top <= anchorY) {
-      currentIndex = index;
-    }
-  });
-
-  return currentIndex;
-}
-
-function scrollEntryDay(offset) {
-  const headers = visibleEntryDayHeaders();
-  if (headers.length === 0) return;
-
-  const currentIndex = currentEntryDayIndex(headers);
-  jumpToEntryIndex(currentIndex + offset);
-}
-
-function updateEntryScrubber(groups, index) {
-  const scrubber = document.getElementById("entryScrubber");
-  const label = document.getElementById("entryScrubLabel");
-  const prev = document.getElementById("entryPrevDayBtn");
-  const next = document.getElementById("entryNextDayBtn");
-  const top = document.getElementById("scrollEntriesTopBtn");
-  const bottom = document.getElementById("scrollEntriesBottomBtn");
-  const hasGroups = groups.length > 0;
-  const clamped = hasGroups ? Math.max(0, Math.min(groups.length - 1, index)) : 0;
-
-  if (scrubber) {
-    scrubber.min = "0";
-    scrubber.max = String(Math.max(groups.length - 1, 0));
-    scrubber.value = String(clamped);
-    scrubber.disabled = groups.length <= 1;
-  }
-
-  if (label) {
-    label.textContent = hasGroups ? `${clamped + 1}/${groups.length}` : "0/0";
-  }
-
-  for (const button of [prev, next, top, bottom]) {
-    if (button) button.disabled = !hasGroups;
-  }
-}
-
-function syncEntryScrubberToScroll() {
-  const headers = visibleEntryDayHeaders();
-  if (headers.length === 0) {
-    updateEntryScrubber(currentEntryGroups, 0);
-    return;
-  }
-
-  updateEntryScrubber(currentEntryGroups, currentEntryDayIndex(headers));
-}
-
-function scheduleEntryScrubberSync() {
-  if (activeTab !== "entries" || entryScrubberFrame) return;
-  entryScrubberFrame = requestAnimationFrame(() => {
-    entryScrubberFrame = null;
-    syncEntryScrubberToScroll();
-  });
-}
-
-function jumpToEntryIndex(index) {
-  if (currentEntryGroups.length === 0) return;
-
-  const clamped = Math.max(0, Math.min(currentEntryGroups.length - 1, index));
-  const target = document.getElementById(`entry-day-${currentEntryGroups[clamped].key}`);
-
-  if (target) {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  updateEntryScrubber(currentEntryGroups, clamped);
 }
 
 function jumpToEntryDay(dayKey) {
   const el = document.getElementById(`entry-day-${dayKey}`);
   if (!el) return;
 
-  const index = currentEntryGroups.findIndex((group) => group.key === dayKey);
-  if (index >= 0) updateEntryScrubber(currentEntryGroups, index);
   el.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function loadMoreEntries() {
-  entryFetchLimit += 75;
-  startFeedListener();
 }
 
 function entryWhoClass(who) {
@@ -926,7 +827,7 @@ function renderEntryCard(entry, timeLabelForEntry) {
       ${safeLink ? `<a class="linkButton" href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer">Open link</a>` : ``}
     </div>
 
-    ${safeImageUrl ? `<img class="entryImage" src="${escapeHtml(safeImageUrl)}" alt="Memory photo">` : ``}
+    ${safeImageUrl ? `<img class="entryImage" src="${escapeHtml(safeImageUrl)}" alt="Memory photo" loading="lazy" decoding="async">` : ``}
 
     <div class="reactionRow">
       <button
@@ -964,7 +865,6 @@ function renderEntryFeed() {
   }
 
   const sortedGroups = buildEntryGroups(filteredDocs);
-  currentEntryGroups = sortedGroups;
   updateEntryControls(sortedGroups, filteredDocs.length, latestEntryDocs.length);
 
   if (sortedGroups.length === 0) {
@@ -988,15 +888,13 @@ function renderEntryFeed() {
       feed.appendChild(renderEntryCard(entry, timeLabelForEntry));
     }
   }
-
-  syncEntryScrubberToScroll();
 }
 
 function startFeedListener() {
   if (unsubscribeFeed) unsubscribeFeed();
 
   const entriesRef = collection(db, "entries");
-  const q = query(entriesRef, orderBy("createdAtClient", "desc"), limit(entryFetchLimit));
+  const q = query(entriesRef, orderBy("createdAtClient", "desc"));
 
   unsubscribeFeed = onSnapshot(
     q,
@@ -1265,11 +1163,7 @@ function setupEventListeners() {
     saveMemoryBtn: saveMemory,
     signInBtn: signIn,
     signOutBtn: signOutUser,
-    scrollEntriesTopBtn: scrollEntriesTop,
-    scrollEntriesBottomBtn: scrollEntriesBottom,
-    entryPrevDayBtn: () => scrollEntryDay(-1),
-    entryNextDayBtn: () => scrollEntryDay(1),
-    loadMoreEntriesBtn: loadMoreEntries,
+    entryReturnTopBtn: scrollEntriesTop,
   };
 
   for (const [id, handler] of Object.entries(clickHandlers)) {
@@ -1285,8 +1179,6 @@ function setupEventListeners() {
       toggleHeart(button.dataset.entryId);
     });
   }
-
-  window.addEventListener("scroll", scheduleEntryScrubberSync, { passive: true });
 }
 
 onAuthStateChanged(auth, (user) => {
