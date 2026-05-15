@@ -1,0 +1,618 @@
+/* GLOBAL SETTINGS */
+*{
+box-sizing:border-box;
+}
+
+/* PAGE BACKGROUND + FONT */
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+margin:0;
+background:linear-gradient(180deg,#4facfe 0%,#00f2fe 100%);
+min-height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
+color:#111;
+}
+
+/* MAIN APP CONTAINER */
+.container{
+width:100%;
+max-width:420px;
+}
+
+/* APP TITLE */
+.header{
+font-size:28px;
+font-weight:700;
+color:white;
+text-align:center;
+margin-bottom:25px;
+}
+
+/* BUTTON STYLING */
+button{
+width:100%;
+padding:18px;
+margin:10px 0;
+font-size:18px;
+border:none;
+border-radius:18px;
+font-weight:600;
+color:white;
+cursor:pointer;
+transition:transform .1s ease, box-shadow .1s ease;
+box-shadow:0 8px 20px rgba(0,0,0,0.2);
+}
+
+button:active{
+transform:scale(.95);
+box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* BUTTON COLORS */
+.random{ background:#007AFF; }
+.photo{ background:#34C759; }
+.deep{ background:#FF3B30; }
+.pimienta{ background:#AF52DE; }
+
+.saveMemory{
+background:#007AFF;
+color:white;
+font-weight:600;
+}
+
+.saveMemory:active{
+transform:scale(.95);
+}
+
+/* PROMPT CARD (WHITE BOX THAT DISPLAYS PROMPTS) */
+.card{
+margin-top:25px;
+backdrop-filter:blur(18px);
+background:rgba(255,255,255,0.75);
+border-radius:22px;
+padding:28px;
+font-size:22px;
+line-height:1.4;
+box-shadow:0 12px 35px rgba(0,0,0,0.25);
+min-height:150px;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+position:relative;
+overflow:hidden;
+}
+
+/* PROMPT TEXT */
+#prompt{
+transition:transform .2s ease, opacity .2s ease;
+}
+
+/* LOADING SPINNER */
+.spinner{
+width:30px;
+height:30px;
+border-radius:50%;
+border:3px solid rgba(0,0,0,.15);
+border-top:3px solid #007AFF;
+animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+0%{ transform:rotate(0deg); }
+100%{ transform:rotate(360deg); }
+}
+
+/* MEMORY VAULT SECTION */
+.vault{
+margin-top:30px;
+background:white;
+padding:20px;
+border-radius:20px;
+box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+
+.answerVault{
+  margin-top:18px;
+}
+
+.authBox{
+  margin-bottom:14px;
+}
+
+.authStatus{
+  margin-bottom:10px;
+  font-size:14px;
+}
+
+.signOutBtn{
+  background:#555;
+}
+
+.homeIntro{
+  margin:10px 0 14px;
+  line-height:1.45;
+}
+
+.homeImage{
+  width:100%;
+  margin:10px 0 16px;
+  border-radius:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,.15);
+}
+
+.homeUsage{
+  padding:14px;
+  border-radius:16px;
+  background:rgba(0,0,0,.04);
+  line-height:1.45;
+}
+
+.entriesIntro{
+  font-size:14px;
+  color:rgba(0,0,0,.65);
+  line-height:1.45;
+}
+
+.hiddenInput{
+  display:none;
+}
+
+/* JOURNAL TEXT BOX */
+textarea{
+width:100%;
+height:80px;
+border-radius:12px;
+padding:10px;
+border:1px solid #ddd;
+margin-bottom:10px;
+}
+
+/* INPUT FIELDS */
+input, select{
+width:100%;
+padding:10px;
+margin-bottom:10px;
+border-radius:10px;
+border:1px solid #ddd;
+}
+
+/* MEMORY ENTRIES */
+.entry{
+  background:white;
+  border-radius:18px;
+  padding:16px;
+  margin-top:12px;
+  box-shadow:0 6px 16px rgba(0,0,0,.10);
+  border:1px solid rgba(0,0,0,.06);
+}
+
+.dayHeader{
+  margin-top:18px;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.02em;
+  color:rgba(0,0,0,.60);
+}
+
+.entryHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.entryMeta{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.pill.alex{
+  background:rgba(0,122,255,.12);
+  color:#0A56C2;
+}
+
+.pill.nathalia{
+  background:rgba(175,82,222,.14);
+  color:#7A2EA5;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  background:rgba(0,0,0,.06);
+  color:rgba(0,0,0,.60);
+  white-space:nowrap;
+}
+
+.timestamp{
+  font-size:12px;
+  color:rgba(0,0,0,.55);
+  white-space:nowrap;
+}
+
+.promptBlock{
+  background:rgba(0,0,0,.04);
+  border-left:4px solid rgba(0,0,0,.16);
+  padding:10px 12px;
+  border-radius:12px;
+  margin:10px 0;
+  font-size:15px;
+  line-height:1.35;
+}
+
+.promptLabel{
+  font-size:12px;
+  font-weight:800;
+  color:rgba(0,0,0,.55);
+  margin-bottom:6px;
+}
+
+.answerBlock{
+  font-size:16px;
+  line-height:1.45;
+  margin-top:10px;
+  white-space:pre-wrap;
+}
+
+.entryActions{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.linkButton{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(0,122,255,.12);
+  color:#0A56C2;
+  font-weight:700;
+  font-size:14px;
+  text-decoration:none;
+}
+
+.entryImage{
+  width:100%;
+  border-radius:14px;
+  margin-top:12px;
+  display:block;
+}
+
+.reactionRow{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.heartBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(0,0,0,.03);
+  color:#111;
+  font-weight:900;
+  font-size:14px;
+  cursor:pointer;
+  box-shadow:none;
+}
+
+.heartBtn.active{
+  background:rgba(255,45,85,.14);
+  border-color:rgba(255,45,85,.28);
+  color:#FF2D55;
+}
+
+.heartCount{
+  font-size:13px;
+  font-weight:800;
+  color:rgba(0,0,0,.55);
+}
+
+.entriesControls{
+  position:sticky;
+  top:calc(env(safe-area-inset-top) + 8px);
+  z-index:20;
+  margin:12px 0 10px;
+  padding:12px;
+  border-radius:18px;
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 10px 26px rgba(0,0,0,.18);
+}
+
+.entriesControls input,
+.entriesControls select{
+  margin-bottom:0;
+  font-size:14px;
+}
+
+.entrySearch{
+  margin-bottom:10px !important;
+}
+
+.entriesControlGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.entriesControlGrid select:last-child{
+  grid-column:1 / -1;
+}
+
+.entriesQuickRow{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:8px;
+  margin-top:10px;
+}
+
+.entryToolBtn{
+  margin:0;
+  padding:10px 8px;
+  border-radius:12px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(0,0,0,.04);
+  color:#111;
+  box-shadow:none;
+  font-size:13px;
+  font-weight:900;
+}
+
+.entryToolBtn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.entryFeedSummary{
+  margin-top:10px;
+  font-size:12px;
+  font-weight:800;
+  color:rgba(0,0,0,.58);
+}
+
+.emptyEntries{
+  margin-top:12px;
+  padding:18px 14px;
+  border-radius:16px;
+  background:rgba(255,255,255,.88);
+  border:1px solid rgba(0,0,0,.08);
+  color:rgba(0,0,0,.62);
+  font-weight:800;
+  text-align:center;
+}
+
+/* TABS */
+.tabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+
+.tabBtn{
+  flex:1;
+  min-width:120px;
+  padding:12px;
+  border:none;
+  border-radius:14px;
+  font-weight:800;
+  cursor:pointer;
+  background:rgba(255,255,255,.25);
+  color:white;
+  box-shadow:none;
+}
+
+.tabBtn.active{
+  background:rgba(255,255,255,.85);
+  color:#111;
+}
+
+.section{ display:none; }
+.section.active{ display:block; }
+
+/* JOURNAL COMPOSER */
+
+.replyPill{
+  display:none;
+  margin:10px 0;
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(0,0,0,.05);
+  border:1px solid rgba(0,0,0,.08);
+}
+
+.replyPill .label{
+  font-size:12px;
+  font-weight:900;
+  color:rgba(0,0,0,.55);
+  margin-bottom:6px;
+}
+
+.replyPill .text{
+  font-size:14px;
+  line-height:1.35;
+}
+
+.replyPill.show{ display:block; }
+
+/* Romantic new-entry badge */
+.tabBadge{
+  display:none;
+  align-items:center;
+  justify-content:center;
+  margin-left:6px;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  background:rgba(255,255,255,.85);
+  color:#FF2D55;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 6px 14px rgba(0,0,0,.10);
+}
+
+.tabBadge.show{
+  display:inline-flex;
+}
+
+/* Toast */
+.toast{
+  display:none;
+  position:fixed;
+  left:50%;
+  bottom:calc(env(safe-area-inset-bottom) + 18px);
+  transform:translateX(-50%);
+  max-width:420px;
+  width:calc(100% - 40px);
+  padding:12px 14px;
+  border-radius:16px;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 16px 40px rgba(0,0,0,.22);
+  color:#111;
+  font-weight:800;
+  font-size:14px;
+  line-height:1.35;
+  z-index:9999;
+}
+
+.toastSub{
+  display:block;
+  margin-top:4px;
+  font-weight:700;
+  color:rgba(0,0,0,.60);
+}
+
+.pickRow{
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.pickBtn{
+  flex:1;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(0,0,0,.03);
+  color:#111;
+  font-weight:800;
+  font-size:14px;
+  cursor:pointer;
+  box-shadow:none;
+}
+
+
+.pickBtn:active{
+  transform:scale(.98);
+}
+
+.fileStatus{
+  margin-top:-2px;
+  margin-bottom:10px;
+  font-size:13px;
+  font-weight:800;
+  color:rgba(0,0,0,.60);
+}
+
+.fileStatus strong{
+  color:rgba(0,0,0,.78);
+}
+
+.thumbWrap{
+  margin-top:6px;
+}
+
+.thumb{
+  width:100%;
+  max-height:200px;
+  object-fit:cover;
+  border-radius:14px;
+  display:none;
+  box-shadow:0 10px 22px rgba(0,0,0,.12);
+}
+
+.uploadOverlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(10px);
+  z-index:10000;
+}
+
+.uploadCard{
+  min-width:220px;
+  max-width:300px;
+  padding:22px 20px;
+  border-radius:20px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 18px 45px rgba(0,0,0,.20);
+  border:1px solid rgba(0,0,0,.06);
+  text-align:center;
+}
+
+.uploadSpinner{
+  width:34px;
+  height:34px;
+  margin:0 auto 12px;
+  border-radius:50%;
+  border:3px solid rgba(0,0,0,.12);
+  border-top:3px solid #007AFF;
+  animation:spin 1s linear infinite;
+}
+
+.uploadTitle{
+  font-size:16px;
+  font-weight:800;
+  color:#111;
+}
+
+.uploadSub{
+  margin-top:6px;
+  font-size:13px;
+  font-weight:700;
+  color:rgba(0,0,0,.58);
+}
+
+button.isBusy{
+  opacity:.65;
+  pointer-events:none;
+}
