@@ -182,15 +182,17 @@ A&N Deployment Prompts
     </div>
     <div class="entryFeedSummary" id="entryFeedSummary">Loading entries...</div>
   </div>
-  <div class="entryScrollRail" id="entryScrollRail" aria-label="Memory scroll">
-    <button class="entryScrubBtn" id="scrollEntriesTopBtn" type="button" aria-label="Jump to latest entries">Top</button>
-    <button class="entryScrubBtn" id="entryPrevDayBtn" type="button" aria-label="Previous day">Prev</button>
-    <div class="entryScrubberWrap">
-      <input id="entryScrubber" class="entryScrubber" type="range" min="0" max="0" value="0" aria-label="Scroll through entry dates">
+  <div class="entryBottomNav" id="entryBottomNav" aria-label="Memory navigation">
+    <div class="entryNavButtons">
+      <button class="entryNavBtn" id="scrollEntriesTopBtn" type="button" aria-label="Jump to latest entries">Top</button>
+      <button class="entryNavBtn" id="entryPrevDayBtn" type="button" aria-label="Previous day">Prev</button>
+      <button class="entryNavBtn" id="entryNextDayBtn" type="button" aria-label="Next day">Next</button>
+      <button class="entryNavBtn" id="scrollEntriesBottomBtn" type="button" aria-label="Jump to oldest entries">End</button>
     </div>
-    <button class="entryScrubBtn" id="entryNextDayBtn" type="button" aria-label="Next day">Next</button>
-    <button class="entryScrubBtn" id="scrollEntriesBottomBtn" type="button" aria-label="Jump to oldest entries">End</button>
-    <div class="entryScrubLabel" id="entryScrubLabel">Latest</div>
+    <div class="entryScrubberRow">
+      <input id="entryScrubber" class="entryScrubber" type="range" min="0" max="0" value="0" aria-label="Scroll through entry dates">
+      <div class="entryScrubLabel" id="entryScrubLabel">0/0</div>
+    </div>
   </div>
   <div id="memoryFeed"></div>
 </div>

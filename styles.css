@@ -356,66 +356,70 @@ border:1px solid #ddd;
   font-size:14px;
 }
 
-.entryScrollRail{
+.entryBottomNav{
   position:fixed;
-  top:50%;
-  right:max(4px, env(safe-area-inset-right));
+  left:50%;
+  bottom:calc(env(safe-area-inset-bottom) + 8px);
   z-index:9000;
-  width:38px;
+  width:min(390px, calc(100vw - 24px));
+  padding:8px;
+  border-radius:18px;
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 12px 32px rgba(0,0,0,.24);
   display:grid;
-  justify-items:center;
-  gap:5px;
-  transform:translateY(-50%);
+  gap:8px;
+  transform:translateX(-50%);
+  backdrop-filter:blur(12px);
 }
 
-.entryScrubBtn{
+.entryNavButtons{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:6px;
+}
+
+.entryNavBtn{
   all:unset;
   box-sizing:border-box;
-  width:34px;
-  min-height:28px;
-  padding:5px 2px;
-  border-radius:10px;
-  background:rgba(255,255,255,.92);
+  min-height:44px;
+  padding:8px 4px;
+  border-radius:12px;
+  background:rgba(0,0,0,.05);
   color:#111;
   border:1px solid rgba(0,0,0,.08);
-  box-shadow:0 8px 18px rgba(0,0,0,.16);
-  font-size:10px;
+  font-size:12px;
   font-weight:900;
   line-height:1;
   text-align:center;
   cursor:pointer;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
 }
 
-.entryScrubBtn:active{
+.entryNavBtn:active{
   transform:scale(.96);
 }
 
-.entryScrubBtn:disabled{
+.entryNavBtn:disabled{
   opacity:.45;
   cursor:not-allowed;
 }
 
-.entryScrubberWrap{
-  position:relative;
-  width:34px;
-  height:210px;
-  border-radius:999px;
-  background:rgba(255,255,255,.80);
-  border:1px solid rgba(0,0,0,.08);
-  box-shadow:0 8px 18px rgba(0,0,0,.16);
+.entryScrubberRow{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  align-items:center;
+  gap:8px;
 }
 
 .entryScrubber{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:190px !important;
-  height:18px;
+  width:100% !important;
+  min-height:34px;
   margin:0 !important;
   padding:0 !important;
   border:0;
   background:transparent;
-  transform:translate(-50%, -50%) rotate(90deg);
   accent-color:#111;
 }
 
@@ -424,15 +428,14 @@ border:1px solid #ddd;
 }
 
 .entryScrubLabel{
-  width:38px;
-  padding:4px 2px;
+  min-width:42px;
+  padding:6px 8px;
   border-radius:999px;
   background:rgba(17,17,17,.76);
   color:white;
-  box-shadow:0 8px 18px rgba(0,0,0,.16);
-  font-size:9px;
+  font-size:11px;
   font-weight:900;
-  line-height:1.1;
+  line-height:1;
   text-align:center;
 }
 
@@ -520,6 +523,10 @@ border:1px solid #ddd;
 
 .section{ display:none; }
 .section.active{ display:block; }
+
+#sectionEntries{
+  padding-bottom:120px;
+}
 
 /* JOURNAL COMPOSER */
 
