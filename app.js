@@ -168,6 +168,7 @@ function showTab(tab) {
     home: "sectionHome",
     prompts: "sectionPrompts",
     memory: "sectionMemory",
+    scrapbook: "sectionScrapbook",
     entries: "sectionEntries",
   };
 
@@ -176,6 +177,7 @@ function showTab(tab) {
     home: "tabHome",
     prompts: "tabPrompts",
     memory: "tabMemory",
+    scrapbook: "tabScrapbook",
     entries: "tabEntries",
   };
 
@@ -186,6 +188,8 @@ function showTab(tab) {
   for (const k of Object.keys(tabs)) {
     document.getElementById(tabs[k]).classList.toggle("active", k === tab);
   }
+
+  document.body.classList.toggle("scrapbookMode", tab === "scrapbook");
 
   // When the user opens Entries, mark partner updates as “seen” based on real entry timestamps (done in listener)
   if (tab === "entries") {
@@ -199,6 +203,10 @@ function showTab(tab) {
     if (u && ALLOWED_EMAILS.has(u.email || "")) {
       saveLastSeenTs(u.email, Math.max(lastSeenTs || 0, Date.now()));
     }
+  }
+
+  if (tab === "scrapbook") {
+    renderScrapbook();
   }
 }
 
@@ -448,6 +456,11 @@ function setAuthUI(user) {
 
   const paLib = document.getElementById("promptAnswerImageLibrary");
   if (paLib) paLib.disabled = !isSignedIn;
+
+  const printScrapbookBtn = document.getElementById("printScrapbookBtn");
+  const downloadArchiveBtn = document.getElementById("downloadArchiveBtn");
+  if (printScrapbookBtn) printScrapbookBtn.disabled = !isSignedIn;
+  if (downloadArchiveBtn) downloadArchiveBtn.disabled = !isSignedIn;
 
   // Clear password after sign-in
   if (isSignedIn) passInput.value = "";
@@ -890,6 +903,515 @@ function renderEntryFeed() {
   }
 }
 
+/* ============================
+SCRAPBOOK (PDF + archive)
+============================ */
+
+function setScrapbookStatus(message) {
+  const status = document.getElementById("scrapbookStatus");
+  if (status) status.textContent = message;
+}
+
+function timestampToIso(value) {
+  if (value && typeof value.toMillis === "function") {
+    return new Date(value.toMillis()).toISOString();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return new Date(value).toISOString();
+  }
+  return "";
+}
+
+function scrapbookEntriesOldestFirst() {
+  return latestEntryDocs
+    .map((entry) => ({ ...entry, __ms: entryTimeMs(entry) }))
+    .sort((a, b) => {
+      const aMs = a.__ms || Number.MAX_SAFE_INTEGER;
+      const bMs = b.__ms || Number.MAX_SAFE_INTEGER;
+      return aMs - bMs;
+    });
+}
+
+function scrapbookDateLabel(ms) {
+  if (!ms) return "Date unknown";
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(ms));
+}
+
+function scrapbookDateTimeLabel(ms) {
+  if (!ms) return "Date unknown";
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(ms));
+}
+
+function scrapbookMonthKey(ms) {
+  if (!ms) return "unknown";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date(ms));
+}
+
+function scrapbookMonthLabel(ms) {
+  if (!ms) return "Date Unknown";
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "long",
+    year: "numeric",
+  }).format(new Date(ms));
+}
+
+function scrapbookGeneratedDate() {
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date());
+}
+
+function shortScrapbookText(text, maxLength = 150) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (clean.length <= maxLength) return clean;
+  return clean.slice(0, maxLength - 1).trimEnd() + "…";
+}
+
+function displayLinkLabel(url) {
+  const safe = safeExternalUrl(url);
+  if (!safe) return "";
+
+  try {
+    const u = new URL(safe);
+    const path = u.pathname && u.pathname !== "/" ? u.pathname : "";
+    return shortScrapbookText(`${u.hostname.replace(/^www\./, "")}${path}`, 80);
+  } catch (_) {
+    return shortScrapbookText(safe, 80);
+  }
+}
+
+function createScrapbookPage(className, html) {
+  const page = document.createElement("section");
+  page.className = `scrapbookPage ${className || ""}`.trim();
+  page.innerHTML = html;
+  return page;
+}
+
+function collectScrapbookStats(entries) {
+  const firstMs = entries[0]?.__ms || 0;
+  const lastMs = entries[entries.length - 1]?.__ms || 0;
+  const days = new Set(entries.map((entry) => entry.__ms ? dayKeyForMs(entry.__ms) : "unknown"));
+
+  return {
+    total: entries.length,
+    memories: entries.filter((entry) => entry.entryType !== "promptAnswer").length,
+    prompts: entries.filter((entry) => entry.entryType === "promptAnswer").length,
+    photos: entries.filter((entry) => safeExternalUrl(entry.imageUrl)).length,
+    links: entries.filter((entry) => safeExternalUrl(entry.link)).length,
+    loves: entries.reduce((sum, entry) => sum + reactionCount(entry.reactions), 0),
+    days: days.size,
+    firstMs,
+    lastMs,
+  };
+}
+
+function scrapbookRangeLabel(stats) {
+  if (!stats.firstMs || !stats.lastMs) return "A deployment story";
+  if (dayKeyForMs(stats.firstMs) === dayKeyForMs(stats.lastMs)) {
+    return scrapbookDateLabel(stats.firstMs);
+  }
+
+  const start = new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(stats.firstMs));
+
+  const end = new Intl.DateTimeFormat(undefined, {
+    timeZone: APP_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(stats.lastMs));
+
+  return `${start} to ${end}`;
+}
+
+function groupScrapbookEntriesByMonth(entries) {
+  const groups = new Map();
+
+  for (const entry of entries) {
+    const key = scrapbookMonthKey(entry.__ms);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        ms: entry.__ms,
+        label: scrapbookMonthLabel(entry.__ms),
+        entries: [],
+      });
+    }
+    groups.get(key).entries.push(entry);
+  }
+
+  return Array.from(groups.values());
+}
+
+function renderScrapbookCover(stats) {
+  return createScrapbookPage("scrapbookCover", `
+    <div class="coverMark">Alex + Nathalia</div>
+    <div class="coverTitleBlock">
+      <div class="coverKicker">Deployment Love Book</div>
+      <h1>A&amp;N Deployment Scrapbook</h1>
+      <p>A record of loving each other from far apart.</p>
+    </div>
+    <div class="coverMeta">
+      <span>${escapeHtml(scrapbookRangeLabel(stats))}</span>
+      <span>Made ${escapeHtml(scrapbookGeneratedDate())}</span>
+    </div>
+  `);
+}
+
+function renderScrapbookLetter(stats) {
+  return createScrapbookPage("scrapbookLetter", `
+    <div class="letterPaper">
+      <div class="letterEyebrow">For us</div>
+      <h2>The little things became the story.</h2>
+      <p>
+        This book is made from the messages, photos, answers, links, and quiet check-ins
+        we left for each other during deployment.
+      </p>
+      <p>
+        Some entries are tiny. Some are funny. Some are tender. Together, they are proof
+        that distance did not stop us from showing up, remembering each other, and keeping
+        love present in ordinary days.
+      </p>
+      <p>
+        We made ${escapeHtml(String(stats.total))} little records of us. This is where they live now.
+      </p>
+      <div class="letterSignature">A + N</div>
+    </div>
+  `);
+}
+
+function renderScrapbookStats(stats) {
+  const statItems = [
+    ["Entries", stats.total],
+    ["Memories", stats.memories],
+    ["Prompt answers", stats.prompts],
+    ["Photos", stats.photos],
+    ["Links", stats.links],
+    ["Hearts saved", stats.loves],
+  ];
+
+  return createScrapbookPage("scrapbookStatsPage", `
+    <div class="pageEyebrow">The record we kept</div>
+    <h2>By the numbers</h2>
+    <div class="scrapbookStatsGrid">
+      ${statItems.map(([label, value]) => `
+        <div class="scrapbookStat">
+          <strong>${escapeHtml(String(value))}</strong>
+          <span>${escapeHtml(label)}</span>
+        </div>
+      `).join("")}
+    </div>
+    <div class="scrapbookDateBand">
+      <div>
+        <span>First entry</span>
+        <strong>${escapeHtml(scrapbookDateLabel(stats.firstMs))}</strong>
+      </div>
+      <div>
+        <span>Last entry</span>
+        <strong>${escapeHtml(scrapbookDateLabel(stats.lastMs))}</strong>
+      </div>
+      <div>
+        <span>Days represented</span>
+        <strong>${escapeHtml(String(stats.days))}</strong>
+      </div>
+    </div>
+  `);
+}
+
+function renderScrapbookEntryCard(entry, index) {
+  const card = document.createElement("article");
+  const who = (entry.who || "A+N").trim();
+  const whoClass = entryWhoClass(who);
+  const promptText = (entry.promptText || "").trim();
+  const promptCategory = (entry.promptCategory || "Prompt").trim();
+  const safeLink = safeExternalUrl(entry.link);
+  const safeImageUrl = safeExternalUrl(entry.imageUrl);
+  const lovedText = lovedByText(lovedNamesFromReactions(entry.reactions, auth.currentUser));
+  const linkLabel = displayLinkLabel(safeLink);
+  const tapeSide = index % 2 === 0 ? "left" : "right";
+
+  card.className = `scrapbookEntry ${whoClass} ${safeImageUrl ? "hasScrapbookPhoto" : ""}`;
+  card.innerHTML = `
+    <div class="scrapbookTape ${tapeSide}"></div>
+    <header class="scrapbookEntryHeader">
+      <span class="scrapbookWho">${escapeHtml(who)}</span>
+      <time>${escapeHtml(scrapbookDateTimeLabel(entry.__ms))}</time>
+    </header>
+
+    ${promptText ? `
+      <div class="scrapbookPrompt">
+        <span>${escapeHtml(promptCategory || "Prompt")}</span>
+        <p>${escapeHtml(promptText)}</p>
+      </div>
+    ` : ``}
+
+    ${entry.text ? `<div class="scrapbookText">${escapeHtml(entry.text)}</div>` : ``}
+
+    ${safeImageUrl ? `
+      <figure class="scrapbookPhotoFrame">
+        <img src="${escapeHtml(safeImageUrl)}" alt="${escapeHtml(who)} memory photo" loading="eager" decoding="async">
+      </figure>
+    ` : ``}
+
+    ${safeLink ? `
+      <a class="scrapbookLink" href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer">
+        ${escapeHtml(linkLabel || safeLink)}
+      </a>
+    ` : ``}
+
+    ${lovedText ? `<div class="scrapbookLoved">${escapeHtml(lovedText)}</div>` : ``}
+  `;
+
+  return card;
+}
+
+function renderScrapbookMonthPage(group) {
+  const photoCount = group.entries.filter((entry) => safeExternalUrl(entry.imageUrl)).length;
+  const promptCount = group.entries.filter((entry) => entry.entryType === "promptAnswer").length;
+  const page = createScrapbookPage("scrapbookTimelinePage", `
+    <div class="monthHeader">
+      <div class="pageEyebrow">Chapter</div>
+      <h2>${escapeHtml(group.label)}</h2>
+      <p>${escapeHtml(String(group.entries.length))} entries, ${escapeHtml(String(photoCount))} photos, ${escapeHtml(String(promptCount))} prompt answers</p>
+    </div>
+    <div class="scrapbookEntryGrid"></div>
+  `);
+
+  const grid = page.querySelector(".scrapbookEntryGrid");
+  group.entries.forEach((entry, index) => {
+    grid.appendChild(renderScrapbookEntryCard(entry, index));
+  });
+
+  return page;
+}
+
+function photoCaptionForEntry(entry) {
+  const text = shortScrapbookText(entry.text || entry.promptText || "", 105);
+  if (text) return text;
+  return scrapbookDateLabel(entry.__ms);
+}
+
+function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages) {
+  const page = createScrapbookPage("scrapbookGalleryPage", `
+    <div class="pageEyebrow">Photo roll ${escapeHtml(String(pageNumber))} of ${escapeHtml(String(totalPages))}</div>
+    <h2>Little windows into us</h2>
+    <div class="scrapbookGalleryGrid"></div>
+  `);
+
+  const grid = page.querySelector(".scrapbookGalleryGrid");
+  entries.forEach((entry, index) => {
+    const safeImageUrl = safeExternalUrl(entry.imageUrl);
+    if (!safeImageUrl) return;
+
+    const tile = document.createElement("figure");
+    tile.className = `galleryTile tile${(index % 6) + 1}`;
+    tile.innerHTML = `
+      <img src="${escapeHtml(safeImageUrl)}" alt="Scrapbook photo" loading="eager" decoding="async">
+      <figcaption>
+        <strong>${escapeHtml(entry.who || "A+N")}</strong>
+        <span>${escapeHtml(photoCaptionForEntry(entry))}</span>
+      </figcaption>
+    `;
+    grid.appendChild(tile);
+  });
+
+  return page;
+}
+
+function renderScrapbookClosingPage() {
+  return createScrapbookPage("scrapbookClosingPage", `
+    <div class="closingCard">
+      <div class="pageEyebrow">Still us</div>
+      <h2>Distance was part of the story.</h2>
+      <p>Love was the record we kept.</p>
+      <div class="closingNames">Alex + Nathalia</div>
+    </div>
+  `);
+}
+
+function renderScrapbookEmpty(message) {
+  return createScrapbookPage("scrapbookEmptyPage", `
+    <h2>Scrapbook</h2>
+    <p>${escapeHtml(message)}</p>
+  `);
+}
+
+function chunkArray(items, size) {
+  const chunks = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+function renderScrapbook() {
+  const book = document.getElementById("scrapbookBook");
+  if (!book) return;
+
+  book.innerHTML = "";
+
+  const user = auth.currentUser;
+  if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
+    setScrapbookStatus("Sign in to build the scrapbook.");
+    book.appendChild(renderScrapbookEmpty("Sign in to turn the saved memories into the deployment scrapbook."));
+    return;
+  }
+
+  const entries = scrapbookEntriesOldestFirst();
+  if (entries.length === 0) {
+    setScrapbookStatus("No entries saved yet.");
+    book.appendChild(renderScrapbookEmpty("No saved entries yet."));
+    return;
+  }
+
+  const stats = collectScrapbookStats(entries);
+  book.appendChild(renderScrapbookCover(stats));
+  book.appendChild(renderScrapbookLetter(stats));
+  book.appendChild(renderScrapbookStats(stats));
+
+  const monthGroups = groupScrapbookEntriesByMonth(entries);
+  monthGroups.forEach((group) => {
+    book.appendChild(renderScrapbookMonthPage(group));
+  });
+
+  const photoEntries = entries.filter((entry) => safeExternalUrl(entry.imageUrl));
+  const photoChunks = chunkArray(photoEntries, 6);
+  photoChunks.forEach((chunk, index) => {
+    book.appendChild(renderScrapbookPhotoGalleryPage(chunk, index + 1, photoChunks.length));
+  });
+
+  book.appendChild(renderScrapbookClosingPage());
+  setScrapbookStatus(`${entries.length} entries ready for the keepsake PDF.`);
+}
+
+function waitForScrapbookImages(timeoutMs = 15000) {
+  const book = document.getElementById("scrapbookBook");
+  if (!book) return Promise.resolve();
+
+  const images = Array.from(book.querySelectorAll("img")).filter((img) => !img.complete);
+  if (images.length === 0) return Promise.resolve();
+
+  const imagePromises = images.map((img) => new Promise((resolve) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", resolve, { once: true });
+  }));
+
+  const timeout = new Promise((resolve) => setTimeout(resolve, timeoutMs));
+  return Promise.race([Promise.all(imagePromises), timeout]);
+}
+
+async function printScrapbook() {
+  const user = auth.currentUser;
+  if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
+    alert("Sign in first.");
+    showTab("signin");
+    return;
+  }
+
+  if (latestEntryDocs.length === 0) {
+    alert("There are no saved entries to print yet.");
+    return;
+  }
+
+  showTab("scrapbook");
+  renderScrapbook();
+  setScrapbookStatus("Preparing photos for the PDF...");
+  await waitForScrapbookImages();
+  setScrapbookStatus(`${latestEntryDocs.length} entries ready for the keepsake PDF.`);
+  window.print();
+}
+
+function serializeReactions(reactions) {
+  const output = {};
+
+  for (const [uid, value] of Object.entries(reactions || {})) {
+    if (value && typeof value === "object") {
+      output[uid] = {
+        who: value.who || "",
+        email: value.email || "",
+        at: timestampToIso(value.at),
+      };
+    } else {
+      output[uid] = value;
+    }
+  }
+
+  return output;
+}
+
+function downloadScrapbookArchive() {
+  const user = auth.currentUser;
+  if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
+    alert("Sign in first.");
+    showTab("signin");
+    return;
+  }
+
+  const entries = scrapbookEntriesOldestFirst();
+  if (entries.length === 0) {
+    alert("There are no saved entries to archive yet.");
+    return;
+  }
+
+  const archive = {
+    title: "A&N Deployment Scrapbook Archive",
+    generatedAt: new Date().toISOString(),
+    timezone: APP_TIMEZONE,
+    entryCount: entries.length,
+    entries: entries.map((entry) => ({
+      id: entry.id || "",
+      who: entry.who || "",
+      text: entry.text || "",
+      link: entry.link || "",
+      entryType: entry.entryType || "",
+      promptCategory: entry.promptCategory || "",
+      promptText: entry.promptText || "",
+      imageUrl: entry.imageUrl || "",
+      createdAtIso: timestampToIso(entry.__ms),
+      createdAtClient: entry.createdAtClient || null,
+      email: entry.email || "",
+      uid: entry.uid || "",
+      reactions: serializeReactions(entry.reactions),
+    })),
+  };
+
+  const blob = new Blob([JSON.stringify(archive, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `an-deployment-scrapbook-archive-${dayKeyForMs(Date.now())}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setScrapbookStatus("Archive downloaded.");
+}
+
 function startFeedListener() {
   if (unsubscribeFeed) unsubscribeFeed();
 
@@ -983,6 +1505,11 @@ function startFeedListener() {
 
       latestEntryDocs = docs;
       renderEntryFeed();
+      if (activeTab === "scrapbook") {
+        renderScrapbook();
+      } else {
+        setScrapbookStatus(docs.length ? `${docs.length} entries ready for the keepsake PDF.` : "No entries saved yet.");
+      }
     },
     (err) => {
       console.error("Feed listener error:", err);
@@ -1164,6 +1691,8 @@ function setupEventListeners() {
     signInBtn: signIn,
     signOutBtn: signOutUser,
     entryReturnTopBtn: scrollEntriesTop,
+    printScrapbookBtn: printScrapbook,
+    downloadArchiveBtn: downloadScrapbookArchive,
   };
 
   for (const [id, handler] of Object.entries(clickHandlers)) {
@@ -1199,6 +1728,7 @@ onAuthStateChanged(auth, (user) => {
     unsubscribeFeed = null;
     latestEntryDocs = [];
     renderEntryFeed();
+    renderScrapbook();
   }
 });
 
@@ -1229,3 +1759,4 @@ setPhotoStatus("memory", null);
 setAuthUI(null);
 showTab("home");
 updateEntriesBadge();
+renderScrapbook();

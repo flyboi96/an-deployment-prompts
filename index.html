@@ -35,6 +35,7 @@ A&N Deployment Prompts
   <button class="tabBtn active" id="tabHome" data-tab="home">Home</button>
   <button class="tabBtn" id="tabPrompts" data-tab="prompts">Prompts</button>
   <button class="tabBtn" id="tabMemory" data-tab="memory">Memory</button>
+  <button class="tabBtn" id="tabScrapbook" data-tab="scrapbook">Scrapbook</button>
   
   <button class="tabBtn" id="tabEntries" data-tab="entries">
   Entries <span id="entriesBadge" class="tabBadge">❤️</span>
@@ -181,6 +182,25 @@ A&N Deployment Prompts
   </div>
   <div id="memoryFeed"></div>
   <button class="entryReturnTop" id="entryReturnTopBtn" type="button" aria-label="Return to top">↑</button>
+</div>
+
+<div class="section" id="sectionScrapbook">
+  <div class="scrapbookControls" id="scrapbookControls">
+    <div>
+      <h2>Scrapbook</h2>
+      <p>
+        Every memory, prompt answer, photo, link, and little love note from the deployment,
+        arranged into one keepsake.
+      </p>
+    </div>
+    <div class="scrapbookActionGrid">
+      <button class="saveMemory scrapbookPrimary" id="printScrapbookBtn" type="button">Save Scrapbook PDF</button>
+      <button class="saveMemory scrapbookSecondary" id="downloadArchiveBtn" type="button">Download Archive</button>
+    </div>
+    <div class="scrapbookStatus" id="scrapbookStatus">Loading scrapbook...</div>
+  </div>
+
+  <div id="scrapbookBook" class="scrapbookBook"></div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
