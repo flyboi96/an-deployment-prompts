@@ -205,7 +205,7 @@ function showTab(tab) {
     }
   }
 
-  if (tab === "scrapbook") {
+  if (tab === "scrapbook" && !suppressScrapbookAutoRender) {
     renderScrapbook();
   }
 }
@@ -557,6 +557,7 @@ MEMORY VAULT (Firestore + Storage)
 let unsubscribeFeed = null;
 let latestEntryDocs = [];
 let entryControlsReady = false;
+let suppressScrapbookAutoRender = false;
 
 async function toggleHeart(entryId) {
   const user = auth.currentUser;
@@ -1143,7 +1144,7 @@ function renderScrapbookStats(stats) {
   `);
 }
 
-function renderScrapbookEntryCard(entry, index) {
+function renderScrapbookEntryCard(entry, index, options = {}) {
   const card = document.createElement("article");
   const who = (entry.who || "A+N").trim();
   const whoClass = entryWhoClass(who);
@@ -1154,6 +1155,7 @@ function renderScrapbookEntryCard(entry, index) {
   const lovedText = lovedByText(lovedNamesFromReactions(entry.reactions, auth.currentUser));
   const linkLabel = displayLinkLabel(safeLink);
   const tapeSide = index % 2 === 0 ? "left" : "right";
+  const imageLoading = options.imageLoading || "lazy";
 
   card.className = `scrapbookEntry ${whoClass} ${safeImageUrl ? "hasScrapbookPhoto" : ""}`;
   card.innerHTML = `
@@ -1174,7 +1176,7 @@ function renderScrapbookEntryCard(entry, index) {
 
     ${safeImageUrl ? `
       <figure class="scrapbookPhotoFrame">
-        <img src="${escapeHtml(safeImageUrl)}" alt="${escapeHtml(who)} memory photo" loading="eager" decoding="async">
+        <img src="${escapeHtml(safeImageUrl)}" alt="${escapeHtml(who)} memory photo" loading="${escapeHtml(imageLoading)}" decoding="async">
       </figure>
     ` : ``}
 
@@ -1190,7 +1192,7 @@ function renderScrapbookEntryCard(entry, index) {
   return card;
 }
 
-function renderScrapbookMonthPage(group) {
+function renderScrapbookMonthPage(group, options = {}) {
   const photoCount = group.entries.filter((entry) => safeExternalUrl(entry.imageUrl)).length;
   const promptCount = group.entries.filter((entry) => entry.entryType === "promptAnswer").length;
   const page = createScrapbookPage("scrapbookTimelinePage", `
@@ -1204,7 +1206,7 @@ function renderScrapbookMonthPage(group) {
 
   const grid = page.querySelector(".scrapbookEntryGrid");
   group.entries.forEach((entry, index) => {
-    grid.appendChild(renderScrapbookEntryCard(entry, index));
+    grid.appendChild(renderScrapbookEntryCard(entry, index, options));
   });
 
   return page;
@@ -1216,7 +1218,8 @@ function photoCaptionForEntry(entry) {
   return scrapbookDateLabel(entry.__ms);
 }
 
-function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages) {
+function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages, options = {}) {
+  const imageLoading = options.imageLoading || "lazy";
   const page = createScrapbookPage("scrapbookGalleryPage", `
     <div class="pageEyebrow">Photo roll ${escapeHtml(String(pageNumber))} of ${escapeHtml(String(totalPages))}</div>
     <h2>Little windows into us</h2>
@@ -1231,7 +1234,7 @@ function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages) {
     const tile = document.createElement("figure");
     tile.className = `galleryTile tile${(index % 6) + 1}`;
     tile.innerHTML = `
-      <img src="${escapeHtml(safeImageUrl)}" alt="Scrapbook photo" loading="eager" decoding="async">
+      <img src="${escapeHtml(safeImageUrl)}" alt="Scrapbook photo" loading="${escapeHtml(imageLoading)}" decoding="async">
       <figcaption>
         <strong>${escapeHtml(entry.who || "A+N")}</strong>
         <span>${escapeHtml(photoCaptionForEntry(entry))}</span>
@@ -1269,43 +1272,48 @@ function chunkArray(items, size) {
   return chunks;
 }
 
-function renderScrapbook() {
+function renderScrapbook(options = {}) {
   const book = document.getElementById("scrapbookBook");
   if (!book) return;
 
-  book.innerHTML = "";
+  const includePhotoRoll = options.includePhotoRoll !== false;
+  const imageLoading = options.imageLoading || "lazy";
+  const fragment = document.createDocumentFragment();
 
   const user = auth.currentUser;
   if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
     setScrapbookStatus("Sign in to build the scrapbook.");
-    book.appendChild(renderScrapbookEmpty("Sign in to turn the saved memories into the deployment scrapbook."));
+    book.replaceChildren(renderScrapbookEmpty("Sign in to turn the saved memories into the deployment scrapbook."));
     return;
   }
 
   const entries = scrapbookEntriesOldestFirst();
   if (entries.length === 0) {
     setScrapbookStatus("No entries saved yet.");
-    book.appendChild(renderScrapbookEmpty("No saved entries yet."));
+    book.replaceChildren(renderScrapbookEmpty("No saved entries yet."));
     return;
   }
 
   const stats = collectScrapbookStats(entries);
-  book.appendChild(renderScrapbookCover(stats));
-  book.appendChild(renderScrapbookLetter(stats));
-  book.appendChild(renderScrapbookStats(stats));
+  fragment.appendChild(renderScrapbookCover(stats));
+  fragment.appendChild(renderScrapbookLetter(stats));
+  fragment.appendChild(renderScrapbookStats(stats));
 
   const monthGroups = groupScrapbookEntriesByMonth(entries);
   monthGroups.forEach((group) => {
-    book.appendChild(renderScrapbookMonthPage(group));
+    fragment.appendChild(renderScrapbookMonthPage(group, { imageLoading }));
   });
 
-  const photoEntries = entries.filter((entry) => safeExternalUrl(entry.imageUrl));
-  const photoChunks = chunkArray(photoEntries, 6);
-  photoChunks.forEach((chunk, index) => {
-    book.appendChild(renderScrapbookPhotoGalleryPage(chunk, index + 1, photoChunks.length));
-  });
+  if (includePhotoRoll) {
+    const photoEntries = entries.filter((entry) => safeExternalUrl(entry.imageUrl));
+    const photoChunks = chunkArray(photoEntries, 6);
+    photoChunks.forEach((chunk, index) => {
+      fragment.appendChild(renderScrapbookPhotoGalleryPage(chunk, index + 1, photoChunks.length, { imageLoading }));
+    });
+  }
 
-  book.appendChild(renderScrapbookClosingPage());
+  fragment.appendChild(renderScrapbookClosingPage());
+  book.replaceChildren(fragment);
   setScrapbookStatus(`${entries.length} entries ready for the keepsake PDF.`);
 }
 
@@ -1325,6 +1333,10 @@ function waitForScrapbookImages(timeoutMs = 15000) {
   return Promise.race([Promise.all(imagePromises), timeout]);
 }
 
+function nextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 async function printScrapbook() {
   const user = auth.currentUser;
   if (!user || !ALLOWED_EMAILS.has(user.email || "")) {
@@ -1338,12 +1350,23 @@ async function printScrapbook() {
     return;
   }
 
-  showTab("scrapbook");
-  renderScrapbook();
+  suppressScrapbookAutoRender = true;
+  try {
+    showTab("scrapbook");
+  } finally {
+    suppressScrapbookAutoRender = false;
+  }
+
+  setScrapbookStatus("Building the PDF layout...");
+  await nextFrame();
+
+  renderScrapbook({ includePhotoRoll: false, imageLoading: "eager" });
   setScrapbookStatus("Preparing photos for the PDF...");
-  await waitForScrapbookImages();
+  await nextFrame();
+
+  await waitForScrapbookImages(8000);
   setScrapbookStatus(`${latestEntryDocs.length} entries ready for the keepsake PDF.`);
-  window.print();
+  setTimeout(() => window.print(), 100);
 }
 
 function serializeReactions(reactions) {
