@@ -708,9 +708,55 @@ button.isBusy{
   opacity:.55;
 }
 
+.scrapbookPage::after{
+  content:"A + N  /  Djibouti - Destin";
+  position:absolute;
+  left:26px;
+  right:26px;
+  bottom:16px;
+  pointer-events:none;
+  color:rgba(47,111,117,.42);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-align:center;
+}
+
 .scrapbookPage > *{
   position:relative;
   z-index:1;
+}
+
+.scrapbookSticker{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:max-content;
+  max-width:100%;
+  padding:8px 12px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid rgba(101,67,48,.18);
+  color:#b5485b;
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  box-shadow:0 10px 20px rgba(74,49,36,.10);
+}
+
+.coverSticker{
+  align-self:flex-start;
+  transform:rotate(-3deg);
+}
+
+.letterSticker,
+.statsSticker,
+.gallerySticker,
+.closingSticker{
+  margin-bottom:14px;
+  transform:rotate(-2deg);
 }
 
 .coverMark,
@@ -772,6 +818,30 @@ button.isBusy{
   font-size:20px;
   line-height:1.35;
   color:#6f3f4c;
+}
+
+.coverRoute{
+  margin-top:22px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.coverRoute span{
+  display:inline-flex;
+  padding:9px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(101,67,48,.14);
+  color:#2f6f75;
+  font-size:13px;
+  font-weight:900;
+}
+
+.coverRoute strong{
+  color:#b5485b;
+  font-size:20px;
 }
 
 .coverMeta{
@@ -876,6 +946,25 @@ button.isBusy{
   border-bottom:2px dashed rgba(181,72,91,.28);
 }
 
+.monthRibbon{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+  color:#2f6f75;
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.monthRibbon span{
+  flex:1;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg, rgba(47,111,117,.35), rgba(181,72,91,.45));
+}
+
 .monthHeader h2{
   margin-bottom:8px;
 }
@@ -886,9 +975,69 @@ button.isBusy{
   color:#5d625d;
 }
 
+.monthKeepsake{
+  margin-top:34px;
+  padding:18px;
+  border-radius:18px;
+  background:rgba(255,255,255,.72);
+  border:1px dashed rgba(181,72,91,.30);
+  color:#3b302c;
+}
+
+.monthKeepsake strong{
+  display:block;
+  margin-bottom:8px;
+  color:#b5485b;
+  font-size:14px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.monthKeepsake span{
+  display:block;
+  font-size:18px;
+  line-height:1.5;
+}
+
+.spreadHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+  padding-bottom:14px;
+  border-bottom:2px dashed rgba(47,111,117,.22);
+}
+
+.spreadHeader h2{
+  margin:6px 0 0;
+  font-size:26px;
+  line-height:1.1;
+  color:#321f24;
+}
+
+.spreadCount{
+  flex:0 0 auto;
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(101,67,48,.14);
+  color:#b5485b;
+  font-size:12px;
+  font-weight:900;
+}
+
 .scrapbookEntryGrid{
   display:grid;
   gap:18px;
+}
+
+.scrapbookSpreadPage .scrapbookEntryGrid{
+  align-items:start;
+}
+
+.singleEntrySpread .scrapbookEntryGrid{
+  display:block;
 }
 
 .scrapbookEntry{
@@ -898,6 +1047,7 @@ button.isBusy{
   background:rgba(255,255,255,.78);
   border:1px solid rgba(101,67,48,.13);
   box-shadow:0 10px 24px rgba(74,49,36,.12);
+  overflow:hidden;
 }
 
 .scrapbookEntry.alex{
@@ -928,12 +1078,30 @@ button.isBusy{
   left:24px;
 }
 
+.scrapbookCornerMark{
+  position:absolute;
+  right:-28px;
+  bottom:-28px;
+  width:78px;
+  height:78px;
+  border-radius:50%;
+  background:rgba(181,72,91,.08);
+  border:1px solid rgba(181,72,91,.12);
+}
+
 .scrapbookEntryHeader{
   display:flex;
   align-items:flex-start;
   justify-content:space-between;
   gap:12px;
   margin-bottom:12px;
+}
+
+.scrapbookEntryIdentity{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
 }
 
 .scrapbookWho{
@@ -946,9 +1114,26 @@ button.isBusy{
   font-weight:900;
 }
 
+.scrapbookLocation{
+  display:inline-flex;
+  padding:6px 9px;
+  border-radius:999px;
+  background:rgba(244,198,93,.22);
+  color:#7d5717;
+  border:1px solid rgba(156,103,24,.13);
+  font-size:12px;
+  font-weight:900;
+}
+
 .scrapbookEntry.nathalia .scrapbookWho{
   background:#f4e3ec;
   color:#8b2f62;
+}
+
+.scrapbookEntry.nathalia .scrapbookLocation{
+  background:rgba(181,72,141,.10);
+  color:#8b2f62;
+  border-color:rgba(181,72,141,.14);
 }
 
 .scrapbookEntryHeader time{
@@ -964,8 +1149,9 @@ button.isBusy{
   margin:12px 0;
   padding:12px;
   border-radius:14px;
-  background:#f3efe7;
+  background:#fff8e8;
   border-left:4px solid #d4a13d;
+  border-top:1px solid rgba(212,161,61,.14);
 }
 
 .scrapbookPrompt span{
@@ -988,6 +1174,7 @@ button.isBusy{
   font-size:17px;
   line-height:1.55;
   white-space:pre-wrap;
+  color:#332925;
 }
 
 .scrapbookPhotoFrame{
@@ -1029,6 +1216,8 @@ button.isBusy{
   color:#b5485b;
   font-size:13px;
   font-weight:900;
+  padding-top:10px;
+  border-top:1px dashed rgba(181,72,91,.24);
 }
 
 .scrapbookGalleryGrid{
@@ -1044,6 +1233,7 @@ button.isBusy{
   border-radius:14px;
   background:#fff;
   box-shadow:0 12px 24px rgba(44,31,24,.15);
+  break-inside:avoid;
 }
 
 .galleryTile img{
@@ -1175,7 +1365,7 @@ button.isBusy{
   .scrapbookPage{
     width:100% !important;
     margin:0 !important;
-    padding:.32in !important;
+    padding:.32in .32in .46in !important;
     border:1px solid rgba(101,67,48,.16) !important;
     border-radius:0 !important;
     box-shadow:none !important;
@@ -1189,7 +1379,10 @@ button.isBusy{
   .scrapbookCover,
   .scrapbookLetter,
   .scrapbookStatsPage,
-  .scrapbookClosingPage{
+  .scrapbookClosingPage,
+  .scrapbookMonthIntroPage,
+  .scrapbookSpreadPage,
+  .scrapbookGalleryPage{
     min-height:9.15in;
     break-after:page;
     page-break-after:always;
@@ -1225,6 +1418,12 @@ button.isBusy{
     min-height:auto;
   }
 
+  .scrapbookMonthIntroPage,
+  .scrapbookSpreadPage,
+  .scrapbookGalleryPage{
+    min-height:9.15in;
+  }
+
   .scrapbookPage:last-child{
     break-after:auto;
     page-break-after:auto;
@@ -1236,6 +1435,19 @@ button.isBusy{
 
   .letterPaper{
     background:rgba(255,255,255,.82) !important;
+  }
+
+  .scrapbookSticker{
+    box-shadow:none;
+    background:#fff !important;
+    border-color:rgba(101,67,48,.22) !important;
+  }
+
+  .coverRoute span,
+  .scrapbookWho,
+  .scrapbookLocation,
+  .scrapbookLink{
+    border:1px solid rgba(101,67,48,.14);
   }
 
   .scrapbookStatsGrid{
@@ -1251,32 +1463,62 @@ button.isBusy{
     font-size:28px;
   }
 
+  .monthKeepsake{
+    margin-top:.38in;
+    background:rgba(255,255,255,.82) !important;
+  }
+
+  .monthKeepsake span{
+    font-size:16px;
+  }
+
+  .spreadHeader{
+    margin-bottom:.16in;
+    padding-bottom:.12in;
+  }
+
+  .spreadHeader h2{
+    font-size:24px;
+  }
+
   .scrapbookEntryGrid{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    gap:.16in;
+  }
+
+  .singleEntrySpread .scrapbookEntryGrid,
+  .photoSpreadPage .scrapbookEntryGrid{
     display:block !important;
   }
 
   .scrapbookEntry,
   .scrapbookStat,
   .scrapbookDateBand{
-    break-inside:auto;
-    page-break-inside:auto;
+    break-inside:avoid;
+    page-break-inside:avoid;
   }
 
   .scrapbookEntry{
-    margin:0 0 .18in !important;
+    margin:0 0 .16in !important;
     padding:.18in !important;
     background:rgba(255,255,255,.86) !important;
     box-shadow:none;
     border:1px solid rgba(101,67,48,.18);
-    break-inside:auto;
-    page-break-inside:auto;
+    break-inside:avoid;
+    page-break-inside:avoid;
+    overflow:hidden;
   }
 
   .scrapbookEntry.hasScrapbookPhoto{
     grid-column:auto;
   }
 
-  .scrapbookTape,
+  .photoSpreadPage .scrapbookEntry.hasScrapbookPhoto,
+  .singleEntrySpread .scrapbookEntry.hasScrapbookPhoto{
+    grid-column:auto;
+  }
+
   .tile1,
   .tile2,
   .tile4,
@@ -1288,6 +1530,22 @@ button.isBusy{
 
   .scrapbookTape{
     opacity:.72;
+  }
+
+  .scrapbookTape.left{
+    transform:rotate(-4deg) !important;
+  }
+
+  .scrapbookTape.right{
+    transform:rotate(4deg) !important;
+  }
+
+  .scrapbookCornerMark{
+    background:rgba(181,72,91,.08) !important;
+  }
+
+  .scrapbookEntryIdentity{
+    gap:6px;
   }
 
   .scrapbookText{
@@ -1314,18 +1572,30 @@ button.isBusy{
   .galleryTile img{
     width:100% !important;
     height:auto !important;
-    max-height:4.35in !important;
+    max-height:3.15in !important;
     object-fit:contain !important;
     background:#f7f2ec !important;
     border-radius:4px;
   }
 
+  .photoOnlyScrapbookEntry .scrapbookPhotoFrame img{
+    max-height:4.75in !important;
+  }
+
+  .longScrapbookEntry .scrapbookPhotoFrame img{
+    max-height:2.35in !important;
+  }
+
   .scrapbookGalleryGrid{
-    display:block !important;
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    gap:.16in;
   }
 
   .galleryTile{
-    margin:0 0 .16in !important;
+    margin:0 !important;
+    padding:.1in !important;
+    background:#fff !important;
     box-shadow:none;
     border:1px solid rgba(101,67,48,.14);
     break-inside:avoid;
@@ -1334,7 +1604,7 @@ button.isBusy{
 
   .galleryTile img{
     aspect-ratio:auto !important;
-    max-height:3.2in !important;
+    max-height:2.55in !important;
   }
 
   a{

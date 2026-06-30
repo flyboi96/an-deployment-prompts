@@ -1069,13 +1069,26 @@ function groupScrapbookEntriesByMonth(entries) {
   return Array.from(groups.values());
 }
 
+function locationFromWho(who) {
+  const normalized = String(who || "").trim().toLowerCase();
+  if (normalized === "alex") return "Djibouti";
+  if (normalized === "nathalia") return "Destin";
+  return "Across the distance";
+}
+
 function renderScrapbookCover(stats) {
   return createScrapbookPage("scrapbookCover", `
+    <div class="scrapbookSticker coverSticker">Djibouti to Destin</div>
     <div class="coverMark">Alex + Nathalia</div>
     <div class="coverTitleBlock">
       <div class="coverKicker">Deployment Love Book</div>
       <h1>A&amp;N Deployment Scrapbook</h1>
-      <p>A record of loving each other from far apart.</p>
+      <p>A printed record of loving each other from Djibouti to Destin.</p>
+      <div class="coverRoute" aria-label="Alex in Djibouti, Nathalia in Destin">
+        <span>Alex in Djibouti</span>
+        <strong>+</strong>
+        <span>Nathalia in Destin</span>
+      </div>
     </div>
     <div class="coverMeta">
       <span>${escapeHtml(scrapbookRangeLabel(stats))}</span>
@@ -1087,11 +1100,12 @@ function renderScrapbookCover(stats) {
 function renderScrapbookLetter(stats) {
   return createScrapbookPage("scrapbookLetter", `
     <div class="letterPaper">
+      <div class="scrapbookSticker letterSticker">Kept for always</div>
       <div class="letterEyebrow">For us</div>
       <h2>The little things became the story.</h2>
       <p>
         This book is made from the messages, photos, answers, links, and quiet check-ins
-        we left for each other during deployment.
+        we left for each other while Alex was deployed to Djibouti and Nathalia was in Destin.
       </p>
       <p>
         Some entries are tiny. Some are funny. Some are tender. Together, they are proof
@@ -1117,6 +1131,7 @@ function renderScrapbookStats(stats) {
   ];
 
   return createScrapbookPage("scrapbookStatsPage", `
+    <div class="scrapbookSticker statsSticker">Our paper trail</div>
     <div class="pageEyebrow">The record we kept</div>
     <h2>By the numbers</h2>
     <div class="scrapbookStatsGrid">
@@ -1148,6 +1163,7 @@ function renderScrapbookEntryCard(entry, index, options = {}) {
   const card = document.createElement("article");
   const who = (entry.who || "A+N").trim();
   const whoClass = entryWhoClass(who);
+  const location = locationFromWho(who);
   const promptText = (entry.promptText || "").trim();
   const promptCategory = (entry.promptCategory || "Prompt").trim();
   const safeLink = safeExternalUrl(entry.link);
@@ -1156,12 +1172,24 @@ function renderScrapbookEntryCard(entry, index, options = {}) {
   const linkLabel = displayLinkLabel(safeLink);
   const tapeSide = index % 2 === 0 ? "left" : "right";
   const imageLoading = options.imageLoading || "lazy";
+  const textLength = String(entry.text || "").length + promptText.length;
+  const entryClasses = [
+    "scrapbookEntry",
+    whoClass,
+    safeImageUrl ? "hasScrapbookPhoto" : "",
+    textLength > 650 ? "longScrapbookEntry" : "",
+    !entry.text && safeImageUrl ? "photoOnlyScrapbookEntry" : "",
+  ].filter(Boolean).join(" ");
 
-  card.className = `scrapbookEntry ${whoClass} ${safeImageUrl ? "hasScrapbookPhoto" : ""}`;
+  card.className = entryClasses;
   card.innerHTML = `
+    <div class="scrapbookCornerMark"></div>
     <div class="scrapbookTape ${tapeSide}"></div>
     <header class="scrapbookEntryHeader">
-      <span class="scrapbookWho">${escapeHtml(who)}</span>
+      <div class="scrapbookEntryIdentity">
+        <span class="scrapbookWho">${escapeHtml(who)}</span>
+        <span class="scrapbookLocation">${escapeHtml(location)}</span>
+      </div>
       <time>${escapeHtml(scrapbookDateTimeLabel(entry.__ms))}</time>
     </header>
 
@@ -1192,24 +1220,98 @@ function renderScrapbookEntryCard(entry, index, options = {}) {
   return card;
 }
 
-function renderScrapbookMonthPage(group, options = {}) {
+function renderScrapbookMonthIntroPage(group) {
   const photoCount = group.entries.filter((entry) => safeExternalUrl(entry.imageUrl)).length;
   const promptCount = group.entries.filter((entry) => entry.entryType === "promptAnswer").length;
-  const page = createScrapbookPage("scrapbookTimelinePage", `
+  return createScrapbookPage("scrapbookTimelinePage scrapbookMonthIntroPage", `
+    <div class="monthRibbon">Djibouti <span></span> Destin</div>
     <div class="monthHeader">
       <div class="pageEyebrow">Chapter</div>
       <h2>${escapeHtml(group.label)}</h2>
-      <p>${escapeHtml(String(group.entries.length))} entries, ${escapeHtml(String(photoCount))} photos, ${escapeHtml(String(promptCount))} prompt answers</p>
+      <p>${escapeHtml(String(group.entries.length))} pieces of us, ${escapeHtml(String(photoCount))} photos, ${escapeHtml(String(promptCount))} prompt answers</p>
+    </div>
+    <div class="monthKeepsake">
+      <strong>What this chapter holds</strong>
+      <span>Messages sent across time zones, small proof of care, and the ordinary moments that made the distance feel smaller.</span>
+    </div>
+  `);
+}
+
+function scrapbookEntryWeight(entry) {
+  const textLength = String(entry.text || "").length + String(entry.promptText || "").length;
+  let weight = 1;
+
+  if (safeExternalUrl(entry.imageUrl)) weight += 2.4;
+  if (entry.entryType === "promptAnswer" || entry.promptText) weight += 0.7;
+  if (safeExternalUrl(entry.link)) weight += 0.45;
+  if (textLength > 260) weight += 0.9;
+  if (textLength > 650) weight += 1.2;
+
+  return weight;
+}
+
+function chunkEntriesForSpreads(entries) {
+  const pages = [];
+  let current = [];
+  let currentWeight = 0;
+  const maxWeight = 4.6;
+  const maxItems = 3;
+
+  for (const entry of entries) {
+    const weight = scrapbookEntryWeight(entry);
+    const wouldOverflow = current.length > 0 && (currentWeight + weight > maxWeight || current.length >= maxItems);
+
+    if (wouldOverflow) {
+      pages.push(current);
+      current = [];
+      currentWeight = 0;
+    }
+
+    current.push(entry);
+    currentWeight += weight;
+
+    if (weight >= maxWeight) {
+      pages.push(current);
+      current = [];
+      currentWeight = 0;
+    }
+  }
+
+  if (current.length > 0) pages.push(current);
+  return pages;
+}
+
+function renderScrapbookSpreadPage(group, entries, pageNumber, totalPages, options = {}) {
+  const hasPhoto = entries.some((entry) => safeExternalUrl(entry.imageUrl));
+  const page = createScrapbookPage(`scrapbookTimelinePage scrapbookSpreadPage ${hasPhoto ? "photoSpreadPage" : ""} ${entries.length === 1 ? "singleEntrySpread" : ""}`, `
+    <div class="monthRibbon">Djibouti <span></span> Destin</div>
+    <div class="spreadHeader">
+      <div>
+        <div class="pageEyebrow">${escapeHtml(group.label)}</div>
+        <h2>Love note spread</h2>
+      </div>
+      <div class="spreadCount">${escapeHtml(String(pageNumber))} / ${escapeHtml(String(totalPages))}</div>
     </div>
     <div class="scrapbookEntryGrid"></div>
   `);
 
   const grid = page.querySelector(".scrapbookEntryGrid");
-  group.entries.forEach((entry, index) => {
+  entries.forEach((entry, index) => {
     grid.appendChild(renderScrapbookEntryCard(entry, index, options));
   });
 
   return page;
+}
+
+function renderScrapbookMonthPages(group, options = {}) {
+  const pages = [renderScrapbookMonthIntroPage(group)];
+  const spreads = chunkEntriesForSpreads(group.entries);
+
+  spreads.forEach((entries, index) => {
+    pages.push(renderScrapbookSpreadPage(group, entries, index + 1, spreads.length, options));
+  });
+
+  return pages;
 }
 
 function photoCaptionForEntry(entry) {
@@ -1221,6 +1323,7 @@ function photoCaptionForEntry(entry) {
 function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages, options = {}) {
   const imageLoading = options.imageLoading || "lazy";
   const page = createScrapbookPage("scrapbookGalleryPage", `
+    <div class="scrapbookSticker gallerySticker">Look what we kept</div>
     <div class="pageEyebrow">Photo roll ${escapeHtml(String(pageNumber))} of ${escapeHtml(String(totalPages))}</div>
     <h2>Little windows into us</h2>
     <div class="scrapbookGalleryGrid"></div>
@@ -1249,9 +1352,10 @@ function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages, option
 function renderScrapbookClosingPage() {
   return createScrapbookPage("scrapbookClosingPage", `
     <div class="closingCard">
+      <div class="scrapbookSticker closingSticker">Always</div>
       <div class="pageEyebrow">Still us</div>
       <h2>Distance was part of the story.</h2>
-      <p>Love was the record we kept.</p>
+      <p>Djibouti and Destin were far apart. Love was the record we kept.</p>
       <div class="closingNames">Alex + Nathalia</div>
     </div>
   `);
@@ -1301,12 +1405,14 @@ function renderScrapbook(options = {}) {
 
   const monthGroups = groupScrapbookEntriesByMonth(entries);
   monthGroups.forEach((group) => {
-    fragment.appendChild(renderScrapbookMonthPage(group, { imageLoading }));
+    renderScrapbookMonthPages(group, { imageLoading }).forEach((page) => {
+      fragment.appendChild(page);
+    });
   });
 
   if (includePhotoRoll) {
     const photoEntries = entries.filter((entry) => safeExternalUrl(entry.imageUrl));
-    const photoChunks = chunkArray(photoEntries, 6);
+    const photoChunks = chunkArray(photoEntries, 4);
     photoChunks.forEach((chunk, index) => {
       fragment.appendChild(renderScrapbookPhotoGalleryPage(chunk, index + 1, photoChunks.length, { imageLoading }));
     });
@@ -1321,11 +1427,24 @@ function waitForScrapbookImages(timeoutMs = 15000) {
   const book = document.getElementById("scrapbookBook");
   if (!book) return Promise.resolve();
 
-  const images = Array.from(book.querySelectorAll("img")).filter((img) => !img.complete);
+  const images = Array.from(book.querySelectorAll("img"));
   if (images.length === 0) return Promise.resolve();
 
   const imagePromises = images.map((img) => new Promise((resolve) => {
-    img.addEventListener("load", resolve, { once: true });
+    const decode = () => {
+      if (typeof img.decode === "function") {
+        img.decode().then(resolve).catch(resolve);
+      } else {
+        resolve();
+      }
+    };
+
+    if (img.complete) {
+      decode();
+      return;
+    }
+
+    img.addEventListener("load", decode, { once: true });
     img.addEventListener("error", resolve, { once: true });
   }));
 
@@ -1360,11 +1479,11 @@ async function printScrapbook() {
   setScrapbookStatus("Building the PDF layout...");
   await nextFrame();
 
-  renderScrapbook({ includePhotoRoll: false, imageLoading: "eager" });
+  renderScrapbook({ includePhotoRoll: true, imageLoading: "eager" });
   setScrapbookStatus("Preparing photos for the PDF...");
   await nextFrame();
 
-  await waitForScrapbookImages(8000);
+  await waitForScrapbookImages(18000);
   setScrapbookStatus(`${latestEntryDocs.length} entries ready for the keepsake PDF.`);
   setTimeout(() => window.print(), 100);
 }
