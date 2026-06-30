@@ -678,6 +678,17 @@ button.isBusy{
   color:rgba(43,37,34,.62);
 }
 
+.scrapbookPrintNote{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#e8f0ed;
+  color:#235a60;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.35;
+}
+
 .scrapbookBook{
   margin-top:18px;
 }
@@ -1321,8 +1332,8 @@ button.isBusy{
 
 @media print{
   @page{
-    size:Letter;
-    margin:.38in;
+    size:6.25in 9.25in;
+    margin:0;
   }
 
   html,
@@ -1333,6 +1344,8 @@ button.isBusy{
     padding:0 !important;
     background:#fff !important;
     color:#2b2522 !important;
+    print-color-adjust:exact;
+    -webkit-print-color-adjust:exact;
   }
 
   .container{
@@ -1362,11 +1375,25 @@ button.isBusy{
     margin:0 !important;
   }
 
+  .scrapbookPage::before{
+    background:
+      linear-gradient(90deg, #f2e8dd 0 1px, transparent 1px 100%),
+      linear-gradient(180deg, #e7efec 0 1px, transparent 1px 100%);
+    background-size:.25in .25in;
+    opacity:1;
+  }
+
+  .scrapbookPage::after{
+    bottom:.32in;
+    color:#7e9790;
+  }
+
   .scrapbookPage{
-    width:100% !important;
+    width:6.25in !important;
+    min-height:9.25in !important;
     margin:0 !important;
-    padding:.32in .32in .46in !important;
-    border:1px solid rgba(101,67,48,.16) !important;
+    padding:.625in .625in .75in .75in !important;
+    border:0 !important;
     border-radius:0 !important;
     box-shadow:none !important;
     break-after:auto;
@@ -1376,6 +1403,16 @@ button.isBusy{
     -webkit-print-color-adjust:exact;
   }
 
+  .scrapbookPage:nth-of-type(even){
+    padding-left:.625in !important;
+    padding-right:.75in !important;
+  }
+
+  .scrapbookPage:nth-of-type(odd){
+    padding-left:.75in !important;
+    padding-right:.625in !important;
+  }
+
   .scrapbookCover,
   .scrapbookLetter,
   .scrapbookStatsPage,
@@ -1383,7 +1420,7 @@ button.isBusy{
   .scrapbookMonthIntroPage,
   .scrapbookSpreadPage,
   .scrapbookGalleryPage{
-    min-height:9.15in;
+    min-height:9.25in !important;
     break-after:page;
     page-break-after:always;
   }
@@ -1421,7 +1458,7 @@ button.isBusy{
   .scrapbookMonthIntroPage,
   .scrapbookSpreadPage,
   .scrapbookGalleryPage{
-    min-height:9.15in;
+    min-height:9.25in !important;
   }
 
   .scrapbookPage:last-child{
@@ -1430,7 +1467,29 @@ button.isBusy{
   }
 
   .coverTitleBlock h1{
-    font-size:44px;
+    font-size:36px;
+  }
+
+  .coverTitleBlock{
+    margin:.65in 0;
+  }
+
+  .coverTitleBlock p{
+    font-size:17px;
+  }
+
+  .letterPaper h2,
+  .scrapbookStatsPage h2,
+  .monthHeader h2,
+  .scrapbookGalleryPage h2,
+  .scrapbookClosingPage h2,
+  .scrapbookEmptyPage h2{
+    font-size:26px;
+  }
+
+  .letterPaper p{
+    font-size:15px;
+    line-height:1.52;
   }
 
   .letterPaper{
@@ -1452,15 +1511,25 @@ button.isBusy{
 
   .scrapbookStatsGrid{
     grid-template-columns:1fr 1fr;
+    gap:.12in;
+  }
+
+  .scrapbookStat{
+    min-height:.75in;
+    padding:.12in;
+  }
+
+  .scrapbookStat strong{
+    font-size:25px;
   }
 
   .monthHeader{
-    margin-bottom:14px;
-    padding-bottom:12px;
+    margin-bottom:.14in;
+    padding-bottom:.11in;
   }
 
   .monthHeader h2{
-    font-size:28px;
+    font-size:25px;
   }
 
   .monthKeepsake{
@@ -1500,8 +1569,8 @@ button.isBusy{
   }
 
   .scrapbookEntry{
-    margin:0 0 .16in !important;
-    padding:.18in !important;
+    margin:0 0 .14in !important;
+    padding:.14in !important;
     background:rgba(255,255,255,.86) !important;
     box-shadow:none;
     border:1px solid rgba(101,67,48,.18);
@@ -1549,18 +1618,19 @@ button.isBusy{
   }
 
   .scrapbookText{
-    font-size:14px;
-    line-height:1.45;
+    font-size:12.8px;
+    line-height:1.38;
   }
 
   .scrapbookPrompt{
-    margin:.12in 0;
-    padding:.12in;
+    margin:.1in 0;
+    padding:.1in;
+    font-size:12.4px;
   }
 
   .scrapbookPhotoFrame{
-    margin:.14in 0 0;
-    padding:.1in .1in .16in;
+    margin:.12in 0 0;
+    padding:.08in .08in .13in;
     background:#fff !important;
     box-shadow:none;
     border:1px solid rgba(101,67,48,.16);
@@ -1572,18 +1642,18 @@ button.isBusy{
   .galleryTile img{
     width:100% !important;
     height:auto !important;
-    max-height:3.15in !important;
+    max-height:2.75in !important;
     object-fit:contain !important;
     background:#f7f2ec !important;
     border-radius:4px;
   }
 
   .photoOnlyScrapbookEntry .scrapbookPhotoFrame img{
-    max-height:4.75in !important;
+    max-height:4.15in !important;
   }
 
   .longScrapbookEntry .scrapbookPhotoFrame img{
-    max-height:2.35in !important;
+    max-height:2.0in !important;
   }
 
   .scrapbookGalleryGrid{
@@ -1604,7 +1674,7 @@ button.isBusy{
 
   .galleryTile img{
     aspect-ratio:auto !important;
-    max-height:2.55in !important;
+    max-height:2.18in !important;
   }
 
   a{
