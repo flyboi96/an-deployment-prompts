@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "scrapbook:html": "node tools/build-scrapbook-pdf.mjs --no-pdf",
+    "scrapbook:pdf": "node tools/build-scrapbook-pdf.mjs"
+  }
+}
