@@ -342,7 +342,7 @@ function buildPages(entries) {
   }
 
   const photos = entries.filter((entry) => entry.localImage || entry.imageUrl);
-  chunkArray(photos, 4).forEach((chunk, index, chunks) => {
+  chunkArray(photos, 3).forEach((chunk, index, chunks) => {
     pages.push({ type: "gallery", html: galleryPage(chunk, index + 1, chunks.length) });
   });
 
@@ -464,13 +464,13 @@ function galleryPage(entries, pageNumber, totalPages) {
     <div class="sticker">Look what we kept</div>
     <div class="eyebrow">Photo roll ${pageNumber} of ${totalPages}</div>
     <h2>Little windows into us</h2>
-    <div class="galleryGrid">
-      ${entries.map((entry) => {
+    <div class="galleryGrid count${entries.length}">
+      ${entries.map((entry, index) => {
         const image = entry.localImage || entry.imageUrl;
         return `
-          <figure class="galleryTile">
+          <figure class="galleryTile ${index === 0 ? "featuredGalleryTile" : ""}">
             <img src="${escapeHtml(image)}" alt="Scrapbook photo">
-            <figcaption><strong>${escapeHtml(entry.who)}</strong><span>${escapeHtml(shortText(entry.text || entry.promptText || dateTimeLabel(entry.ms)))}</span></figcaption>
+            <figcaption><strong>${escapeHtml(entry.who)}</strong><span>${escapeHtml(shortText(entry.text || entry.promptText || dateTimeLabel(entry.ms), 82))}</span></figcaption>
           </figure>
         `;
       }).join("")}
@@ -550,7 +550,7 @@ function buildCss(inner) {
 @page { size: 6.25in 9.25in; margin: 0; }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff; color: #2b2522; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-.page { position: relative; width: 6.25in; min-height: 9.25in; page-break-after: always; break-after: page; overflow: hidden; padding-top: .625in; padding-bottom: .72in; background: #fffaf2; }
+.page { position: relative; width: 6.25in; height: 9.25in; min-height: 9.25in; page-break-after: always; break-after: page; overflow: hidden; padding-top: .625in; padding-bottom: .72in; background: #fffaf2; }
 .page.left { padding-left: .625in; padding-right: ${inner}in; }
 .page.right { padding-left: ${inner}in; padding-right: .625in; }
 .page:last-child { page-break-after: auto; break-after: auto; }
@@ -561,7 +561,7 @@ html, body { margin: 0; padding: 0; background: #fff; color: #2b2522; font-famil
 .letter { background: #edf6f4; }
 .stats { background: #fff1f5; }
 .month, .spread { background: #fffaf2; }
-.gallery { background: #f1f6ef; }
+.gallery { display: flex; flex-direction: column; background: #f1f6ef; }
 .closingPage { background: #f6f0fb; }
 .sticker { display: inline-flex; width: max-content; max-width: 100%; padding: 8px 12px; border-radius: 999px; background: #fff; border: 1px solid #cbbbae; color: #b5485b; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; transform: rotate(-2deg); }
 .eyebrow { color: #2f6f75; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
@@ -617,16 +617,20 @@ time { max-width: 1.25in; color: #7a706b; font-size: 10px; font-weight: 900; lin
 .prompt p { margin: 0; }
 .text { color: #332925; font-size: 12.8px; line-height: 1.38; white-space: pre-wrap; }
 .photo { margin: .12in 0 0; padding: .08in .08in .13in; border-radius: 9px; background: #fff; border: 1px solid #dacfc4; }
-.photo img, .galleryTile img { display: block; width: 100%; height: auto; max-height: 2.75in; object-fit: contain; background: #f7f2ec; border-radius: 4px; }
+.photo img { display: block; width: 100%; height: auto; max-height: 2.75in; object-fit: contain; background: #f7f2ec; border-radius: 4px; }
 .photoOnly .photo img { max-height: 4.15in; }
 .longEntry .photo img { max-height: 2in; }
 .link { margin-top: .1in; padding: .09in; border-radius: 12px; background: #e8f0ed; color: #235a60; font-size: 11px; font-weight: 900; }
 .loved { margin-top: .1in; padding-top: .09in; border-top: 1px dashed #d9a8b3; color: #b5485b; font-size: 11px; font-weight: 900; }
-.galleryGrid { display: grid; grid-template-columns: 1fr 1fr; gap: .16in; margin-top: .18in; }
-.galleryTile { margin: 0; padding: .1in; border-radius: 14px; background: #fff; border: 1px solid #d8cbbd; break-inside: avoid; page-break-inside: avoid; }
-.galleryTile img { max-height: 2.18in; }
+.galleryGrid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1.16fr) minmax(0, .84fr); gap: .16in; margin-top: .18in; }
+.galleryGrid.count1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.galleryGrid.count2 { grid-template-rows: 1fr; }
+.galleryTile { min-height: 0; margin: 0; padding: .1in; border-radius: 14px; background: #fff; border: 1px solid #d8cbbd; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
+.featuredGalleryTile { grid-column: 1 / -1; }
+.galleryTile img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #f7f2ec; border-radius: 4px; }
 .galleryTile figcaption { margin-top: 7px; color: #3d332f; font-size: 10.5px; line-height: 1.35; }
 .galleryTile strong { display: block; color: #b5485b; }
+.galleryTile span { display: -webkit-box; max-height: 28px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .closingContent { height: 7.2in; display: flex; flex-direction: column; justify-content: center; }
 .closingContent h2 { font-size: 32px; }
 .closingContent p { color: #6f3f4c; font-size: 19px; line-height: 1.35; }

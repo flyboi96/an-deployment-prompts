@@ -1238,6 +1238,10 @@ button.isBusy{
   margin-top:18px;
 }
 
+.featuredGalleryTile{
+  grid-column:1 / -1;
+}
+
 .galleryTile{
   margin:0;
   padding:9px;
@@ -1390,6 +1394,7 @@ button.isBusy{
 
   .scrapbookPage{
     width:6.25in !important;
+    height:9.25in !important;
     min-height:9.25in !important;
     margin:0 !important;
     padding:.625in .625in .75in .75in !important;
@@ -1398,7 +1403,7 @@ button.isBusy{
     box-shadow:none !important;
     break-after:auto;
     page-break-after:auto;
-    overflow:visible !important;
+    overflow:hidden !important;
     print-color-adjust:exact;
     -webkit-print-color-adjust:exact;
   }
@@ -1459,6 +1464,11 @@ button.isBusy{
   .scrapbookSpreadPage,
   .scrapbookGalleryPage{
     min-height:9.25in !important;
+  }
+
+  .scrapbookGalleryPage{
+    display:flex !important;
+    flex-direction:column;
   }
 
   .scrapbookPage:last-child{
@@ -1639,7 +1649,7 @@ button.isBusy{
   }
 
   .scrapbookPhotoFrame img,
-  .galleryTile img{
+  .scrapbookPhotoFrame img{
     width:100% !important;
     height:auto !important;
     max-height:2.75in !important;
@@ -1657,9 +1667,21 @@ button.isBusy{
   }
 
   .scrapbookGalleryGrid{
+    flex:1;
+    min-height:0;
     display:grid !important;
     grid-template-columns:1fr 1fr;
+    grid-template-rows:minmax(0, 1.16fr) minmax(0, .84fr);
     gap:.16in;
+  }
+
+  .scrapbookGalleryGrid.count1{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr;
+  }
+
+  .scrapbookGalleryGrid.count2{
+    grid-template-rows:1fr;
   }
 
   .galleryTile{
@@ -1668,13 +1690,36 @@ button.isBusy{
     background:#fff !important;
     box-shadow:none;
     border:1px solid rgba(101,67,48,.14);
+    display:grid;
+    grid-template-rows:minmax(0, 1fr) auto;
+    min-height:0;
+    overflow:hidden;
     break-inside:avoid;
     page-break-inside:avoid;
   }
 
+  .featuredGalleryTile{
+    grid-column:1 / -1;
+  }
+
   .galleryTile img{
     aspect-ratio:auto !important;
-    max-height:2.18in !important;
+    display:block;
+    width:100% !important;
+    height:100% !important;
+    min-height:0;
+    max-height:none !important;
+    object-fit:contain !important;
+    background:#f7f2ec !important;
+    border-radius:4px;
+  }
+
+  .galleryTile figcaption span{
+    display:-webkit-box;
+    max-height:28px;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
   }
 
   a{

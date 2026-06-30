@@ -1315,7 +1315,7 @@ function renderScrapbookMonthPages(group, options = {}) {
 }
 
 function photoCaptionForEntry(entry) {
-  const text = shortScrapbookText(entry.text || entry.promptText || "", 105);
+  const text = shortScrapbookText(entry.text || entry.promptText || "", 82);
   if (text) return text;
   return scrapbookDateLabel(entry.__ms);
 }
@@ -1326,7 +1326,7 @@ function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages, option
     <div class="scrapbookSticker gallerySticker">Look what we kept</div>
     <div class="pageEyebrow">Photo roll ${escapeHtml(String(pageNumber))} of ${escapeHtml(String(totalPages))}</div>
     <h2>Little windows into us</h2>
-    <div class="scrapbookGalleryGrid"></div>
+    <div class="scrapbookGalleryGrid count${escapeHtml(String(entries.length))}"></div>
   `);
 
   const grid = page.querySelector(".scrapbookGalleryGrid");
@@ -1335,7 +1335,7 @@ function renderScrapbookPhotoGalleryPage(entries, pageNumber, totalPages, option
     if (!safeImageUrl) return;
 
     const tile = document.createElement("figure");
-    tile.className = `galleryTile tile${(index % 6) + 1}`;
+    tile.className = `galleryTile tile${(index % 6) + 1}${index === 0 ? " featuredGalleryTile" : ""}`;
     tile.innerHTML = `
       <img src="${escapeHtml(safeImageUrl)}" alt="Scrapbook photo" loading="${escapeHtml(imageLoading)}" decoding="async">
       <figcaption>
@@ -1412,7 +1412,7 @@ function renderScrapbook(options = {}) {
 
   if (includePhotoRoll) {
     const photoEntries = entries.filter((entry) => safeExternalUrl(entry.imageUrl));
-    const photoChunks = chunkArray(photoEntries, 4);
+    const photoChunks = chunkArray(photoEntries, 3);
     photoChunks.forEach((chunk, index) => {
       fragment.appendChild(renderScrapbookPhotoGalleryPage(chunk, index + 1, photoChunks.length, { imageLoading }));
     });
