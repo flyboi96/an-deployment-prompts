@@ -1007,8 +1007,9 @@ button.isBusy{
   display:block;
   width:100%;
   max-height:420px;
-  object-fit:cover;
+  object-fit:contain;
   border-radius:6px;
+  background:#f7f2ec;
 }
 
 .scrapbookLink{
@@ -1049,8 +1050,9 @@ button.isBusy{
   display:block;
   width:100%;
   aspect-ratio:1 / 1;
-  object-fit:cover;
+  object-fit:contain;
   border-radius:8px;
+  background:#f7f2ec;
 }
 
 .galleryTile figcaption{
@@ -1130,7 +1132,7 @@ button.isBusy{
 @media print{
   @page{
     size:Letter;
-    margin:.45in;
+    margin:.38in;
   }
 
   html,
@@ -1172,17 +1174,55 @@ button.isBusy{
 
   .scrapbookPage{
     width:100% !important;
-    min-height:9.45in;
     margin:0 !important;
-    padding:.34in !important;
-    border:0 !important;
+    padding:.32in !important;
+    border:1px solid rgba(101,67,48,.16) !important;
     border-radius:0 !important;
     box-shadow:none !important;
-    break-after:page;
-    page-break-after:always;
+    break-after:auto;
+    page-break-after:auto;
     overflow:visible !important;
     print-color-adjust:exact;
     -webkit-print-color-adjust:exact;
+  }
+
+  .scrapbookCover,
+  .scrapbookLetter,
+  .scrapbookStatsPage,
+  .scrapbookClosingPage{
+    min-height:9.15in;
+    break-after:page;
+    page-break-after:always;
+  }
+
+  .scrapbookCover{
+    background:#fff3e3 !important;
+  }
+
+  .scrapbookLetter{
+    background:#edf6f4 !important;
+  }
+
+  .scrapbookStatsPage{
+    background:#fff1f5 !important;
+  }
+
+  .scrapbookTimelinePage{
+    background:#fffaf2 !important;
+    break-after:page;
+    page-break-after:always;
+  }
+
+  .scrapbookTimelinePage:nth-of-type(odd){
+    background:#f7fbff !important;
+  }
+
+  .scrapbookClosingPage{
+    background:#f6f0fb !important;
+  }
+
+  .scrapbookTimelinePage{
+    min-height:auto;
   }
 
   .scrapbookPage:last-child{
@@ -1190,39 +1230,111 @@ button.isBusy{
     page-break-after:auto;
   }
 
-  .scrapbookTimelinePage{
-    min-height:auto;
+  .coverTitleBlock h1{
+    font-size:44px;
+  }
+
+  .letterPaper{
+    background:rgba(255,255,255,.82) !important;
+  }
+
+  .scrapbookStatsGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .monthHeader{
+    margin-bottom:14px;
+    padding-bottom:12px;
+  }
+
+  .monthHeader h2{
+    font-size:28px;
+  }
+
+  .scrapbookEntryGrid{
+    display:block !important;
   }
 
   .scrapbookEntry,
-  .galleryTile,
   .scrapbookStat,
   .scrapbookDateBand{
+    break-inside:auto;
+    page-break-inside:auto;
+  }
+
+  .scrapbookEntry{
+    margin:0 0 .18in !important;
+    padding:.18in !important;
+    background:rgba(255,255,255,.86) !important;
+    box-shadow:none;
+    border:1px solid rgba(101,67,48,.18);
+    break-inside:auto;
+    page-break-inside:auto;
+  }
+
+  .scrapbookEntry.hasScrapbookPhoto{
+    grid-column:auto;
+  }
+
+  .scrapbookTape,
+  .tile1,
+  .tile2,
+  .tile4,
+  .tile5,
+  .scrapbookPhotoFrame,
+  .scrapbookEntry:nth-child(even) .scrapbookPhotoFrame{
+    transform:none !important;
+  }
+
+  .scrapbookTape{
+    opacity:.72;
+  }
+
+  .scrapbookText{
+    font-size:14px;
+    line-height:1.45;
+  }
+
+  .scrapbookPrompt{
+    margin:.12in 0;
+    padding:.12in;
+  }
+
+  .scrapbookPhotoFrame{
+    margin:.14in 0 0;
+    padding:.1in .1in .16in;
+    background:#fff !important;
+    box-shadow:none;
+    border:1px solid rgba(101,67,48,.16);
     break-inside:avoid;
     page-break-inside:avoid;
   }
 
-  .scrapbookEntryGrid,
+  .scrapbookPhotoFrame img,
+  .galleryTile img{
+    width:100% !important;
+    height:auto !important;
+    max-height:4.35in !important;
+    object-fit:contain !important;
+    background:#f7f2ec !important;
+    border-radius:4px;
+  }
+
   .scrapbookGalleryGrid{
-    gap:12px;
-  }
-
-  .scrapbookEntry{
-    box-shadow:none;
-  }
-
-  .scrapbookPhotoFrame{
-    box-shadow:none;
-    border:1px solid rgba(101,67,48,.16);
-  }
-
-  .scrapbookPhotoFrame img{
-    max-height:3.8in;
+    display:block !important;
   }
 
   .galleryTile{
+    margin:0 0 .16in !important;
     box-shadow:none;
     border:1px solid rgba(101,67,48,.14);
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  .galleryTile img{
+    aspect-ratio:auto !important;
+    max-height:3.2in !important;
   }
 
   a{
